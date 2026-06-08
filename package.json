@@ -7,6 +7,9 @@
     "frontend",
     "frontend-mobile"
   ],
+  "overrides": {
+    "expo": "^54.0.35"
+  },
   "scripts": {
     "web": "npm run dev --workspace=frontend",
     "mobile": "npm run start --workspace=frontend-mobile",

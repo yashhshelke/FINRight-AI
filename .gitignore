@@ -43,3 +43,6 @@ yarn.lock
 # Logs
 **/logs/
 **/*.log
+
+# Design Reference
+Finexa AI Mobile App Design/
