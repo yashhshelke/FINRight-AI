@@ -250,22 +250,15 @@ def retrieve_and_generate(
 
     chunks = retrieve_chunks(question, user_id, document_id)
 
-    if not chunks:
-        return {
-            "answer": (
-                "I couldn't find any relevant information in your documents. "
-                "Please upload a bank statement or receipt first."
-            ),
-            "sources": [],
-        }
-
     # Build context from retrieved chunks
-    context_parts = []
-    for i, chunk in enumerate(chunks, 1):
-        context_parts.append(
-            f"[Source {i} — {chunk['document_name']}]\n{chunk['text']}"
-        )
-    context_str = "\n\n---\n\n".join(context_parts)
+    context_str = ""
+    if chunks:
+        context_parts = []
+        for i, chunk in enumerate(chunks, 1):
+            context_parts.append(
+                f"[Source {i} — {chunk['document_name']}]\n{chunk['text']}"
+            )
+        context_str = "\n\n---\n\n".join(context_parts)
 
     # Build history string
     history_str = ""
@@ -276,28 +269,27 @@ def retrieve_and_generate(
             lines.append(f"{role}: {msg.get('content', '')}")
         history_str = "\n".join(lines)
 
-    system_prompt = """You are Finexa AI, a smart personal finance assistant.
+    system_prompt = """You are Finexa AI, a strict personal finance assistant.
 
-You have access to the user's financial documents (bank statements, receipts, invoices).
-Answer ONLY based on the provided document excerpts. Be concise, specific, and use numbers
-from the documents. If the answer is not in the documents, say so clearly.
+You have access to the user's financial documents and general financial knowledge.
+CRITICAL RULE: You MUST ONLY answer questions related to personal finance, budgeting, investments, taxes, financial documents, or the provided PDFs.
+If a user asks something completely unrelated to finance (e.g., coding, cooking, general history, weather), you MUST politely decline to answer and remind them you are a financial assistant.
 
 Format rules:
-- Keep answers under 4 sentences unless a list is needed
-- Use ₹ for Indian Rupee amounts
-- For spending decisions: start with YES or NO in bold
-- Always cite which document you found the data in
+- Keep answers under 5 sentences unless explaining a complex topic or listing items.
+- Use ₹ for Indian Rupee amounts.
+- If you use data from the documents, always cite the Source name.
+- If the answer is not in the documents, but is a general finance question, answer it using your general knowledge.
 """
 
     user_content = ""
     if history_str:
         user_content += f"Conversation so far:\n{history_str}\n\n"
 
-    user_content += (
-        f"User question: {question}\n\n"
-        f"Relevant excerpts from documents:\n{context_str}\n\n"
-        "Answer:"
-    )
+    if context_str:
+        user_content += f"Relevant excerpts from documents:\n{context_str}\n\n"
+        
+    user_content += f"User question: {question}\n\nAnswer:"
 
     answer = generate_text(
         user_prompt=user_content,

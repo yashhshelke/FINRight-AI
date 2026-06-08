@@ -28,13 +28,23 @@ const quickPrompts = [
 ];
 
 export default function AICoach() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
-  const [uploadedDocId, setUploadedDocId] = useState<number | undefined>(undefined);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Load global chat history
+    AIAPI.getHistory().then((history) => {
+      if (history && history.length > 0) {
+        setMessages(history);
+      } else {
+        setMessages(initialMessages);
+      }
+    }).catch(console.error);
+  }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
 
@@ -52,16 +62,13 @@ export default function AICoach() {
 
     try {
       // If file attached, upload first
-      let docId = uploadedDocId;
       if (attachedFile) {
-        const uploadRes = await AIAPI.processDocument(attachedFile);
-        docId = uploadRes.document_id;
-        setUploadedDocId(docId);
+        await AIAPI.processDocument(attachedFile);
         setAttachedFile(null);
       }
 
-      // RAG chat
-      const res = await AIAPI.chat(question || 'What can you tell me about this document?', docId);
+      // RAG chat (global context, searches all user documents)
+      const res = await AIAPI.chat(question || 'I just uploaded a document. What can you tell me about it?');
       const aiMsg: Message = {
         id: Date.now() + 1, role: 'assistant', text: res.answer,
         sources: res.sources,

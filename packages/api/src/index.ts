@@ -398,6 +398,8 @@ export const AIAPI = {
       body: JSON.stringify({ question, ...(documentId ? { document_id: documentId } : {}) }),
     }),
 
+  getHistory: () => apiFetch<any[]>('/api/ai/chat/history/'),
+
   getChatSessions: () => apiFetch<any>('/api/ai/chat-sessions/'),
 
   getChatMessages: (sessionId: string) =>

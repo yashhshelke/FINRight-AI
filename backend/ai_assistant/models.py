@@ -16,6 +16,7 @@ class Document(models.Model):
     mongo_doc_id = models.CharField(max_length=128, blank=True, default='')  # links to MongoDB expense doc
     summary = EncryptedTextField(blank=True, default='')  # AI-generated summary (encrypted)
     created_at = models.DateTimeField(auto_now_add=True)
+    file_hash = models.CharField(max_length=64, blank=True, help_text="SHA-256 hash to deduplicate files")
 
     def __str__(self):
         return f"Document({self.id}, {self.file_name})"

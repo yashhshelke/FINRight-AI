@@ -2,6 +2,7 @@
 from django.urls import path
 from .views import (
     ChatAPIView,
+    GlobalChatHistoryAPIView,
     ChatMessageListAPIView,
     ChatSessionListAPIView,
     DocumentProcessAPIView,
@@ -46,6 +47,7 @@ urlpatterns = [
 
     # RAG Chat endpoint
     path("chat/", ChatAPIView.as_view(), name="ai-chat"),
+    path("chat/history/", GlobalChatHistoryAPIView.as_view(), name="ai-chat-history"),
 
     path("chat-sessions/", ChatSessionListAPIView.as_view(), name="chat-session-list"),
     path("chat-sessions/<int:session_id>/messages/", ChatMessageListAPIView.as_view(), name="chat-message-list"),

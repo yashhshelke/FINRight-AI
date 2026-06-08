@@ -57,6 +57,34 @@ class DocumentProcessAPIView(APIView):
             request.user.save()
             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
 
+        import hashlib
+        file_hash = hashlib.sha256()
+        for chunk in uploaded_file.chunks():
+            file_hash.update(chunk)
+        file_hash_hex = file_hash.hexdigest()
+        
+        # Reset file pointer for extraction later
+        uploaded_file.seek(0)
+        
+        # Deduplication check
+        existing_doc = Document.objects.filter(user=request.user, file_hash=file_hash_hex).first()
+        if existing_doc:
+            # Refund since no LLM was used
+            request.user.credits += 5
+            request.user.save()
+            return Response(
+                {
+                    "message": "Document already exists (deduplicated)",
+                    "document_id": existing_doc.id,
+                    "sql_document_id": existing_doc.id,
+                    "mongo_id": existing_doc.mongo_doc_id,
+                    "summary": existing_doc.summary,
+                    "transactions_created": 0,
+                    "rag_chunks_indexed": 0,
+                },
+                status=status.HTTP_200_OK,
+            )
+
         # STEP 1: Extract raw text
         try:
             raw_text = extract_text_from_uploaded_file(uploaded_file)
@@ -70,6 +98,7 @@ class DocumentProcessAPIView(APIView):
             user=request.user,
             file_name=uploaded_file.name,
             content=raw_text,
+            file_hash=file_hash_hex,
         )
 
         # STEP 2b: Chunk + embed document for RAG (async-friendly: runs in same thread)
@@ -602,6 +631,28 @@ class BudgetAdviceAPIView(APIView):
         return Response({"tips": tips, "income": income, "expense": total_expense, "savings": savings})
 
 
+class GlobalChatHistoryAPIView(APIView):
+    """
+    GET /api/ai/chat/history/
+    Returns the message history for the user's global ChatSession.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        session, _ = ChatSession.objects.get_or_create(user=request.user, mongo_id=None)
+        msgs = ChatMessage.objects.filter(session=session).order_by("created_at")
+        
+        data = []
+        for m in msgs:
+            data.append({
+                "id": m.id,
+                "role": "assistant" if m.sender == "ai" else "user",
+                "text": m.text,
+                "time": m.created_at.strftime("%I:%M %p")
+            })
+            
+        return Response(data)
+
 # ─── RAG Chat API ───────────────────────────────────────────────────────────
 
 class ChatAPIView(APIView):
@@ -634,14 +685,8 @@ class ChatAPIView(APIView):
         document_id = request.data.get("document_id")  # optional int
         session_id = request.data.get("session_id")    # optional int
 
-        # ── Get or create ChatSession ────────────────────────────
-        if session_id:
-            try:
-                session = ChatSession.objects.get(id=session_id, user=request.user)
-            except ChatSession.DoesNotExist:
-                session = ChatSession.objects.create(user=request.user)
-        else:
-            session = ChatSession.objects.create(user=request.user)
+        # ── Get or create GLOBAL ChatSession ─────────────────────
+        session, _ = ChatSession.objects.get_or_create(user=request.user, mongo_id=None)
 
         # ── Build chat history from session ──────────────────────
         history_msgs = ChatMessage.objects.filter(session=session).order_by("created_at")[:12]
