@@ -1,3 +1,25 @@
+# Node.js / NPM
+**/node_modules/
+**/npm-debug.log
+**/yarn-error.log
+package-lock.json
+yarn.lock
+
+# Build outputs
+**/dist/
+**/build/
+**/.expo/
+**/.next/
+**/out/
+**/*.tsbuildinfo
+
+# Environment variables
+**/.env
+**/.env.local
+**/.env.development.local
+**/.env.test.local
+**/.env.production.local
+
 # Python virtual environments
 **/venv/
 **/.venv/
@@ -8,10 +30,16 @@
 **/__pycache__/
 **/*.pyc
 
-# IDEs
+# IDEs & System files
 **/.vscode/
 **/.idea/
+**/.DS_Store
+**/Thumbs.db
 
 # Database
 **/db.sqlite3
 **/db_backup.sqlite3
+
+# Logs
+**/logs/
+**/*.log
