@@ -7,7 +7,7 @@ const FAQS = [
     {
         category: 'Getting Started',
         items: [
-            { q: 'Is FINON free to use?', a: 'Yes — the core app is completely free. You start with 100,000 AI credits on sign-up, which is more than enough to get a full financial health analysis, multiple AI Coach chats, and risk simulations. Additional credits are available as one-time purchases with no recurring fees.' },
+            { q: 'Is Finexa AI free to use?', a: 'Yes — the core app is completely free. You start with 100,000 AI credits on sign-up, which is more than enough to get a full financial health analysis, multiple AI Coach chats, and risk simulations. Additional credits are available as one-time purchases with no recurring fees.' },
             { q: 'Do I need a real bank account to try FINON?', a: 'No. Simply sign up with your email, complete the onboarding flow, and start using FINON right away. Upload a bank statement PDF to auto-import your transactions, or add them manually.' },
             { q: 'What file formats can I upload?', a: 'FINON supports standard bank statement PDFs exported from major Indian banks. The AI parses the PDF, extracts all transactions, and structures them automatically — no manual entry needed.' },
         ],
@@ -44,7 +44,7 @@ export default function FAQ() {
 
             {/* Ambient glow */}
             <div className="fixed inset-0 pointer-events-none"
-                style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, var(--purple-dim), transparent)' }} />
+                style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(0,61,61,0.06), transparent)' }} />
 
             <Navbar />
 
@@ -54,14 +54,14 @@ export default function FAQ() {
                 <motion.div className="text-center mb-14"
                     initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
                     <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-6"
-                        style={{ background: 'var(--purple-dim)', border: '1px solid var(--border-hi)' }}>
-                        <MessageCircle size={22} className="text-purple" />
+                        style={{ background: 'rgba(0,61,61,0.07)', border: '1px solid rgba(0,61,61,0.18)' }}>
+                        <MessageCircle size={22} style={{ color: '#003d3d' }} />
                     </div>
                     <h1 className="font-display font-black text-1 mb-3" style={{ fontSize: 'clamp(1.8rem,4vw,2.8rem)' }}>
                         Frequently Asked <span className="text-gradient">Questions</span>
                     </h1>
                     <p className="text-sm text-3">
-                        Everything you need to know about FINON
+                        Everything you need to know about Finexa AI
                     </p>
                 </motion.div>
 
@@ -71,8 +71,8 @@ export default function FAQ() {
                         <motion.div key={cat.category}
                             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: ci * 0.08 }}>
-                            <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-4 text-purple"
-                                style={{ opacity: 0.8 }}>{cat.category}</p>
+                            <p className="text-[10px] font-bold tracking-[0.2em] uppercase mb-4"
+                                style={{ color: '#b05b36', opacity: 0.85 }}>{cat.category}</p>
                             <div className="space-y-3">
                                 {cat.items.map((faq, fi) => {
                                     const key = `${ci}-${fi}`;
@@ -81,8 +81,8 @@ export default function FAQ() {
                                         <div key={fi}
                                             className="card overflow-hidden transition-all duration-300"
                                             style={{
-                                                background: isOpen ? 'var(--purple-dim)' : 'var(--surface)',
-                                                borderColor: isOpen ? 'var(--purple)' : 'var(--border)',
+                                                background: isOpen ? 'rgba(0,61,61,0.05)' : 'var(--surface)',
+                                                borderColor: isOpen ? 'rgba(0,61,61,0.35)' : 'var(--border)',
                                             }}>
                                             <button className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
                                                 onClick={() => setOpen(isOpen ? null : key)}>
@@ -90,7 +90,7 @@ export default function FAQ() {
                                                     {faq.q}
                                                 </span>
                                                 <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.22 }} className="flex-shrink-0">
-                                                    <ChevronDown size={15} className={isOpen ? 'text-purple' : 'text-3'} />
+                                                    <ChevronDown size={15} style={{ color: isOpen ? '#003d3d' : 'rgba(42,43,47,0.35)' }} />
                                                 </motion.div>
                                             </button>
                                             <AnimatePresence initial={false}>

@@ -21,7 +21,14 @@ def get_current_score(request):
     Returns the most recent score or calculates a new one if none exists
     """
     try:
-        # Always recalculate to reflect latest income/expense reality
+        from django.core.cache import cache
+        cache_key = f"user_{request.user.id}_health_score"
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            return Response(cached_data)
+
+        # Calculate to reflect latest income/expense reality
         calculator = FinancialHealthCalculator(request.user)
         current_month = timezone.now().date().replace(day=1)
         latest_score = calculator.calculate_total_score(current_month)
@@ -37,7 +44,7 @@ def get_current_score(request):
         effective_income = max(monthly_income, profile_income)
         expense_ratio = round(monthly_expense / effective_income, 3) if effective_income > 0 else 0
 
-        return Response({
+        response_data = {
             'score': latest_score.score,
             'category': latest_score.get_score_category(),
             'color': latest_score.get_score_color(),
@@ -55,7 +62,10 @@ def get_current_score(request):
             },
             'explanation': latest_score.explanation,
             'recommendations': latest_score.recommendations,
-        })
+        }
+        
+        cache.set(cache_key, response_data, 60 * 60) # cache for 1 hour
+        return Response(response_data)
         
     except Exception as e:
         return Response(

@@ -2,12 +2,15 @@ import { motion } from 'framer-motion';
 import { ChevronRight } from 'lucide-react';
 import Navbar from '../components/Navbar';
 
+// Teal color tokens
+const TC = { teal: '#003d3d', rust: '#b05b36', cream: '#f5eee2', muted: 'rgba(42,43,47,0.45)', border: 'rgba(42,43,47,0.1)' };
+
 const STEPS = [
     {
         n: '01',
         title: 'Upload Your Bank Statement',
         tagline: 'Any bank · PDF or CSV · Instant extraction',
-        desc: 'Drop any bank statement and FINON\'s AI parser extracts every transaction in seconds — no manual entry required. Supports 30+ Indian banks including HDFC, SBI, ICICI, Kotak, and Axis. Transactions are automatically sorted into 18 spending categories and stitched into a single timeline across multiple months.',
+        desc: 'Drop any bank statement and Finexa AI parser extracts every transaction in seconds — no manual entry required. Supports 30+ Indian banks including HDFC, SBI, ICICI, Kotak, and Axis. Transactions are automatically sorted into 18 spending categories and stitched into a single timeline across multiple months.',
         bullets: [
             'Upload PDF or CSV — done in under 10 seconds',
             'Auto-categorised into 18 spending buckets',
@@ -19,7 +22,7 @@ const STEPS = [
         n: '02',
         title: 'Get Deep AI Financial Insights',
         tagline: 'Health score · Anomaly alerts · Spending personality',
-        desc: 'FINON analyses every transaction to compute your Financial Health Score (0–100), detect unusual spending patterns, identify your spending personality, and surface personalised recommendations based on your real income and lifestyle.',
+        desc: 'Finexa AI analyses every transaction to compute your Financial Health Score (0–100), detect unusual spending patterns, identify your spending personality, and surface personalised recommendations based on your real income and lifestyle.',
         bullets: [
             'Financial Health Score updated with every upload',
             'Anomaly alerts flag unexpected charges or sudden spikes',
@@ -53,7 +56,7 @@ export default function HowItWorks() {
     return (
         <div className="min-h-screen" style={{ background: 'var(--bg)' }}>
             <div className="fixed inset-0 pointer-events-none"
-                style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, var(--purple-dim), transparent)' }} />
+                style={{ background: 'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(0,61,61,0.06), transparent)' }} />
 
             <Navbar />
 
@@ -80,17 +83,17 @@ export default function HowItWorks() {
                             transition={{ delay: i * 0.12 }}
                             className="card overflow-hidden">
                             {/* Top bar */}
-                            <div style={{ height: 2.5, background: 'linear-gradient(90deg,transparent,var(--purple),transparent)' }} />
+                            <div style={{ height: 2.5, background: `linear-gradient(90deg,transparent,${TC.teal},transparent)` }} />
 
                             <div className="p-8">
                                 {/* Step number + title row */}
                                 <div className="flex items-start gap-5 mb-5">
                                     <div className="flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center"
-                                        style={{ background: 'var(--purple-dim)', border: '1px solid var(--border-hi)' }}>
-                                        <span className="font-display font-black text-lg text-purple">{s.n}</span>
+                                        style={{ background: 'rgba(0,61,61,0.08)', border: '1px solid rgba(0,61,61,0.2)' }}>
+                                        <span className="font-display font-black text-lg" style={{ color: TC.teal }}>{s.n}</span>
                                     </div>
                                     <div className="flex-1 pt-0.5">
-                                        <p className="text-[10px] font-bold tracking-[0.15em] mb-1.5 text-purple" style={{ opacity: 0.7 }}>{s.tagline.toUpperCase()}</p>
+                                        <p className="text-[10px] font-bold tracking-[0.15em] mb-1.5" style={{ color: TC.rust, opacity: 0.85 }}>{s.tagline.toUpperCase()}</p>
                                         <h2 className="font-bold text-1 text-xl">{s.title}</h2>
                                     </div>
                                 </div>
@@ -100,7 +103,7 @@ export default function HowItWorks() {
                                 <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {s.bullets.map(b => (
                                         <li key={b} className="flex items-start gap-2.5 text-xs leading-snug text-2">
-                                            <ChevronRight size={12} className="mt-0.5 flex-shrink-0 text-purple" />
+                                            <ChevronRight size={12} className="mt-0.5 flex-shrink-0" style={{ color: TC.teal }} />
                                             {b}
                                         </li>
                                     ))}
@@ -113,7 +116,7 @@ export default function HowItWorks() {
                 {/* Quick FAQ */}
                 <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
                     <div className="text-center mb-10">
-                        <p className="text-[10px] font-bold tracking-widest mb-2 text-purple" style={{ opacity: 0.6 }}>COMMON QUESTIONS</p>
+                        <p className="text-[10px] font-bold tracking-widest mb-2" style={{ color: TC.rust, opacity: 0.8 }}>COMMON QUESTIONS</p>
                         <h2 className="font-display font-black text-1 text-2xl">Quick Answers</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

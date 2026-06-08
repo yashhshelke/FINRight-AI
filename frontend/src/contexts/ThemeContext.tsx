@@ -2,41 +2,47 @@ import { createContext, useContext, useEffect, useState } from 'react';
 
 interface ThemeContextType {
     isDark: boolean;
-    theme: 'dark' | 'light' | 'emerald';
-    setTheme: (theme: 'dark' | 'light' | 'emerald') => void;
+    theme: 'dark' | 'light';
+    setTheme: (theme: 'dark' | 'light') => void;
     toggle: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
-    isDark: true,
-    theme: 'dark',
+    isDark: false,
+    theme: 'light',
     setTheme: () => {},
-    toggle: () => { },
+    toggle: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setThemeState] = useState<'dark' | 'light' | 'emerald'>(() => {
-        const stored = localStorage.getItem('finon_theme');
-        if (stored === 'light' || stored === 'emerald' || stored === 'dark') return stored as 'dark' | 'light' | 'emerald';
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    const [theme, setThemeState] = useState<'dark' | 'light'>(() => {
+        const stored = localStorage.getItem('finexa_theme');
+        if (stored === 'dark') return 'dark';
+        if (stored === 'light') return 'light';
+        // Default to light (warm cream) mode
+        return 'light';
     });
 
     useEffect(() => {
-        document.documentElement.classList.remove('light', 'emerald');
-        if (theme === 'light') {
-            document.documentElement.classList.add('light');
-        } else if (theme === 'emerald') {
-            document.documentElement.classList.add('emerald');
+        // Remove both classes first
+        document.documentElement.classList.remove('light', 'dark', 'emerald');
+        if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
         }
-        localStorage.setItem('finon_theme', theme);
+        // light = no class (default CSS vars apply)
+        localStorage.setItem('finexa_theme', theme);
     }, [theme]);
 
     function toggle() {
         setThemeState(t => t === 'dark' ? 'light' : 'dark');
     }
 
+    function setTheme(t: 'dark' | 'light') {
+        setThemeState(t);
+    }
+
     return (
-        <ThemeContext.Provider value={{ isDark: theme === 'dark' || theme === 'emerald', theme, setTheme: setThemeState, toggle }}>
+        <ThemeContext.Provider value={{ isDark: theme === 'dark', theme, setTheme, toggle }}>
             {children}
         </ThemeContext.Provider>
     );

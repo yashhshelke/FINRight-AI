@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { ShoppingCart, Home, Coffee, Car, Zap, TrendingUp, TrendingDown, ChevronRight, Bell, Eye, EyeOff, ArrowUpRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { WalletAPI, HealthAPI, GoalsAPI, TransactionsAPI } from '@/lib/api';
+
+const Skeleton = ({ w, h, rounded = 8, bg = 'rgba(42,43,47,0.06)' }: any) => (
+  <motion.div
+    style={{ width: w, height: h, borderRadius: rounded, background: bg }}
+    animate={{ opacity: [0.4, 0.8, 0.4] }}
+    transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+  />
+);
 
 const C = {
   teal: '#003d3d',
@@ -42,14 +51,16 @@ const categoryIcons: Record<string, any> = {
   Utilities: Zap, Income: TrendingUp, Default: TrendingUp,
 };
 
+let cachedOverviewData: any = null;
+
 export default function Overview() {
   const [balanceVisible, setBalanceVisible] = useState(true);
-  const [wallet, setWallet] = useState<any>(null);
-  const [health, setHealth] = useState<any>(null);
-  const [goals, setGoals] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [summary, setSummary] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [wallet, setWallet] = useState<any>(cachedOverviewData?.wallet || null);
+  const [health, setHealth] = useState<any>(cachedOverviewData?.health || null);
+  const [goals, setGoals] = useState<any[]>(cachedOverviewData?.goals || []);
+  const [transactions, setTransactions] = useState<any[]>(cachedOverviewData?.transactions || []);
+  const [summary, setSummary] = useState<any>(cachedOverviewData?.summary || null);
+  const [loading, setLoading] = useState(!cachedOverviewData);
 
   useEffect(() => {
     Promise.all([
@@ -59,10 +70,15 @@ export default function Overview() {
       TransactionsAPI.list(1).catch(() => ({ results: [] })),
       TransactionsAPI.summary().catch(() => null),
     ]).then(([w, h, g, t, s]) => {
+      const gList = g?.results?.slice(0, 4) || [];
+      const tList = t?.results?.slice(0, 6) || [];
+      
+      cachedOverviewData = { wallet: w, health: h, goals: gList, transactions: tList, summary: s };
+      
       setWallet(w);
       setHealth(h);
-      setGoals(g?.results?.slice(0, 4) || []);
-      setTransactions(t?.results?.slice(0, 6) || []);
+      setGoals(gList);
+      setTransactions(tList);
       setSummary(s);
       setLoading(false);
     });
@@ -77,28 +93,13 @@ export default function Overview() {
     <div style={{ background: C.cream, minHeight: '100vh', fontFamily: 'Outfit, sans-serif', paddingBottom: 40 }}>
       {/* Header */}
       <div style={{ padding: '32px 24px 20px', background: C.teal }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', maxWidth: 900, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.rust, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ color: C.white, fontWeight: 700, fontSize: 16 }}>F</span>
-            </div>
-            <div>
-              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: 0 }}>Good Morning 👋</p>
-              <p style={{ color: C.white, fontWeight: 600, fontSize: 16, margin: 0, fontFamily: 'Playfair Display, serif' }}>Finexa AI</p>
-            </div>
-          </div>
-          <button style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <Bell size={17} color="rgba(255,255,255,0.8)" />
-          </button>
-        </div>
-
         {/* Balance */}
-        <div style={{ maxWidth: 900, margin: '20px auto 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 4px', letterSpacing: 1, textTransform: 'uppercase' }}>Total Balance</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ color: C.white, fontSize: 32, fontWeight: 700, fontFamily: 'Playfair Display, serif' }}>
-                {balanceVisible ? `₹${balance.toLocaleString('en-IN')}` : '••••••••'}
+                {loading ? <Skeleton w={140} h={36} bg="rgba(255,255,255,0.15)" rounded={12} /> : (balanceVisible ? `₹${balance.toLocaleString('en-IN')}` : '••••••••')}
               </span>
               <button onClick={() => setBalanceVisible(!balanceVisible)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 {balanceVisible ? <Eye size={15} color="rgba(255,255,255,0.5)" /> : <EyeOff size={15} color="rgba(255,255,255,0.5)" />}
@@ -115,11 +116,11 @@ export default function Overview() {
         <div style={{ maxWidth: 900, margin: '16px auto 0', display: 'flex', gap: 12 }}>
           <div style={{ flex: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 9, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: 0.8 }}>Income</p>
-            <p style={{ color: C.sage, fontSize: 15, fontWeight: 700, margin: 0, fontFamily: 'Playfair Display, serif' }}>₹{income.toLocaleString('en-IN')}</p>
+            {loading ? <Skeleton w={90} h={18} bg="rgba(255,255,255,0.15)" rounded={6} /> : <p style={{ color: C.sage, fontSize: 15, fontWeight: 700, margin: 0, fontFamily: 'Playfair Display, serif' }}>₹{income.toLocaleString('en-IN')}</p>}
           </div>
           <div style={{ flex: 1, background: 'rgba(255,255,255,0.08)', borderRadius: 14, padding: '10px 14px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 9, margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: 0.8 }}>Expenses</p>
-            <p style={{ color: '#f4a48a', fontSize: 15, fontWeight: 700, margin: 0, fontFamily: 'Playfair Display, serif' }}>₹{expense.toLocaleString('en-IN')}</p>
+            {loading ? <Skeleton w={90} h={18} bg="rgba(255,255,255,0.15)" rounded={6} /> : <p style={{ color: '#f4a48a', fontSize: 15, fontWeight: 700, margin: 0, fontFamily: 'Playfair Display, serif' }}>₹{expense.toLocaleString('en-IN')}</p>}
           </div>
         </div>
       </div>
@@ -168,7 +169,22 @@ export default function Overview() {
             </button>
           </div>
           {loading ? (
-            <p style={{ color: C.muted, fontSize: 13 }}>Loading goals…</p>
+            <div style={{ display: 'flex', gap: 12, overflowX: 'hidden' }}>
+              {[1, 2, 3].map((i) => (
+                <div key={i} style={{ minWidth: 160, background: C.white, borderRadius: 18, padding: '16px', border: `1px solid ${C.border}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <Skeleton w={20} h={14} />
+                    <Skeleton w={24} h={24} rounded="50%" />
+                  </div>
+                  <Skeleton w="70%" h={14} style={{ marginBottom: 6 }} />
+                  <Skeleton w="50%" h={18} style={{ marginBottom: 12 }} />
+                  <Skeleton w="100%" h={5} style={{ marginBottom: 6 }} />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <Skeleton w={24} h={10} />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : goals.length === 0 ? (
             <div style={{ background: C.white, borderRadius: 16, padding: '20px', textAlign: 'center', border: `1px solid ${C.border}` }}>
               <p style={{ color: C.muted, fontSize: 13 }}>No savings goals yet. Create one!</p>
@@ -215,7 +231,18 @@ export default function Overview() {
             </button>
           </div>
           {loading ? (
-            <p style={{ color: C.muted, fontSize: 13 }}>Loading transactions…</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} style={{ background: C.white, borderRadius: 14, padding: '12px 16px', border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <Skeleton w={42} h={42} rounded={12} />
+                  <div style={{ flex: 1 }}>
+                    <Skeleton w="40%" h={14} style={{ marginBottom: 6 }} />
+                    <Skeleton w="25%" h={10} />
+                  </div>
+                  <Skeleton w={50} h={18} />
+                </div>
+              ))}
+            </div>
           ) : transactions.length === 0 ? (
             <div style={{ background: C.white, borderRadius: 16, padding: '20px', textAlign: 'center', border: `1px solid ${C.border}` }}>
               <p style={{ color: C.muted, fontSize: 13 }}>No transactions yet. Add one!</p>

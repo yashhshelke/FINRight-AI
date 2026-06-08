@@ -12,11 +12,23 @@ import DashboardLayout from './layouts/DashboardLayout';
 import FAQ from './pages/FAQ';
 import HowItWorks from './pages/HowItWorks';
 import Subscription from './pages/Subscription';
+
 import Overview from './pages/dashboard/Overview';
+import Transactions from './pages/dashboard/Transactions';
 import HabitChallenges from './pages/dashboard/HabitChallenges';
 import AICoach from './pages/dashboard/AICoach';
 import Settings from './pages/dashboard/Settings';
-import Transactions from './pages/dashboard/Transactions';
+import GoalsTracker from './pages/dashboard/GoalsTracker';
+import SpendingInsights from './pages/dashboard/SpendingInsights';
+import BudgetOptimizer from './pages/dashboard/BudgetOptimizer';
+import Wallet from './pages/dashboard/Wallet';
+import Cards from './pages/dashboard/Cards';
+import UPIAnalyser from './pages/dashboard/UPIAnalyser';
+import FinancialEducation from './pages/dashboard/FinancialEducation';
+import EmergencyRisk from './pages/dashboard/EmergencyRisk';
+import IncomeSimulator from './pages/dashboard/IncomeSimulator';
+import Documents from './pages/dashboard/Documents';
+import DashboardSubscription from './pages/dashboard/Subscription';
 
 export default function App() {
     return (
@@ -24,6 +36,7 @@ export default function App() {
             <AuthProvider>
                 <BrowserRouter>
                     <Routes>
+                        {/* Public routes */}
                         <Route path="/" element={<Landing />} />
                         <Route path="/faq" element={<FAQ />} />
                         <Route path="/how-it-works" element={<HowItWorks />} />
@@ -31,17 +44,31 @@ export default function App() {
                         <Route path="/login" element={<SignIn />} />
                         <Route path="/signup" element={<SignUp />} />
                         <Route path="/forgot-password" element={<ForgotPassword />} />
+
+                        {/* Onboarding */}
                         <Route path="/onboarding" element={
                             <ProtectedRoute><Onboarding /></ProtectedRoute>
                         } />
 
+                        {/* Dashboard — protected */}
                         <Route path="/dashboard" element={
                             <ProtectedRoute><DashboardLayout /></ProtectedRoute>
                         }>
                             <Route index element={<Overview />} />
                             <Route path="transactions" element={<Transactions />} />
+                            <Route path="goals" element={<GoalsTracker />} />
                             <Route path="habits" element={<HabitChallenges />} />
                             <Route path="coach" element={<AICoach />} />
+                            <Route path="spending" element={<SpendingInsights />} />
+                            <Route path="budget" element={<BudgetOptimizer />} />
+                            <Route path="wallet" element={<Wallet />} />
+                            <Route path="cards" element={<Cards />} />
+                            <Route path="upi" element={<UPIAnalyser />} />
+                            <Route path="education" element={<FinancialEducation />} />
+                            <Route path="emergency" element={<EmergencyRisk />} />
+                            <Route path="simulator" element={<IncomeSimulator />} />
+                            <Route path="documents" element={<Documents />} />
+                            <Route path="plan" element={<DashboardSubscription />} />
                             <Route path="settings" element={<Settings />} />
                         </Route>
 

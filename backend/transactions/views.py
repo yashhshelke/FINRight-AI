@@ -27,8 +27,13 @@ class TransactionBulkCreateView(APIView):
                 source_document=item.get("source_document", ""),
             )
             tx_list.append(tx)
-        
         Transaction.objects.bulk_create(tx_list)
+
+        # Invalidate caches
+        from django.core.cache import cache
+        cache.delete(f"user_{request.user.id}_all_time_savings")
+        cache.delete(f"user_{request.user.id}_health_score")
+
         return Response({"message": f"Imported {len(tx_list)} transactions successfully"}, status=201)
 
 
@@ -51,6 +56,11 @@ class TransactionListCreateView(generics.ListCreateAPIView):
             notify_transaction(self.request.user, float(tx.amount), tx.category, tx.type)
         except Exception:
             pass  # Don't fail the transaction if notification fails
+
+        # Invalidate caches
+        from django.core.cache import cache
+        cache.delete(f"user_{self.request.user.id}_all_time_savings")
+        cache.delete(f"user_{self.request.user.id}_health_score")
 
 
 class TransactionSummaryView(APIView):
@@ -99,15 +109,23 @@ class TransactionSummaryView(APIView):
         profile_income = float(request.user.income or 0)
 
         # Total savings across all time (income - expenses)
-        all_income = Decimal('0')
-        all_expense = Decimal('0')
-        for t in Transaction.objects.filter(user=request.user):
-            amt = Decimal(str(t.amount or 0))
-            if t.type == 'income':
-                all_income += amt
-            elif t.type == 'expense':
-                all_expense += amt
-        all_time_savings = float(all_income) - float(all_expense)
+        from django.core.cache import cache
+        cache_key = f"user_{request.user.id}_all_time_savings"
+        cached_savings = cache.get(cache_key)
+        
+        if cached_savings is not None:
+            all_time_savings = cached_savings
+        else:
+            all_income = Decimal('0')
+            all_expense = Decimal('0')
+            for t in Transaction.objects.filter(user=request.user):
+                amt = Decimal(str(t.amount or 0))
+                if t.type == 'income':
+                    all_income += amt
+                elif t.type == 'expense':
+                    all_expense += amt
+            all_time_savings = float(all_income) - float(all_expense)
+            cache.set(cache_key, all_time_savings, 60 * 60) # cache for 1 hour
 
         return Response({
             'month': display_month.strftime('%B %Y'),

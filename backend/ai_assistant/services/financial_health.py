@@ -6,7 +6,7 @@ Uses the Transaction model (income/expense) and User.income (profile) as primary
 """
 from decimal import Decimal
 from datetime import datetime, timedelta, date as date_type
-from django.db.models import Count
+from django.db.models import Count, Sum
 from django.utils import timezone
 from ..models import WalletTransaction, Wallet, FinancialHealthScore, ScoreFactorDetail, Loan
 from transactions.models import Transaction
