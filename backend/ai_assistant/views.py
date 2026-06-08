@@ -639,7 +639,9 @@ class GlobalChatHistoryAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        session, _ = ChatSession.objects.get_or_create(user=request.user, mongo_id=None)
+        session = ChatSession.objects.filter(user=request.user, mongo_id=None).first()
+        if not session:
+            session = ChatSession.objects.create(user=request.user, mongo_id=None)
         msgs = ChatMessage.objects.filter(session=session).order_by("created_at")
         
         data = []
@@ -686,7 +688,9 @@ class ChatAPIView(APIView):
         session_id = request.data.get("session_id")    # optional int
 
         # ── Get or create GLOBAL ChatSession ─────────────────────
-        session, _ = ChatSession.objects.get_or_create(user=request.user, mongo_id=None)
+        session = ChatSession.objects.filter(user=request.user, mongo_id=None).first()
+        if not session:
+            session = ChatSession.objects.create(user=request.user, mongo_id=None)
 
         # ── Build chat history from session ──────────────────────
         history_msgs = ChatMessage.objects.filter(session=session).order_by("created_at")[:12]
