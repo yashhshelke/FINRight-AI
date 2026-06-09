@@ -38,11 +38,11 @@ class DocumentChatConsumer(AsyncJsonWebsocketConsumer):
         
         # Middleware already handled auth, but require authenticated user
         if not user or user.is_anonymous:
-            print(f"[CONSUMER] ❌ Rejecting connection - user is anonymous")
+            print(f"[CONSUMER] Rejecting connection - user is anonymous")
             await self.close(code=4001)  # Custom close code for auth failure
             return
 
-        print(f"[CONSUMER] ✅ Accepting connection for user: {user}")
+        print(f"[CONSUMER] Accepting connection for user: {user}")
         self.room_group_name = f"document_chat_{user.id}"
         self.user = user  # Store authenticated user
 
