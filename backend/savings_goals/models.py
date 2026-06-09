@@ -30,19 +30,20 @@ class SavingsGoal(models.Model):
 
     @property
     def progress_percentage(self):
-        if self.target_amount == 0:
+        target = float(self.target_amount)
+        if target == 0:
             return 0
-        return round(float(self.current_amount / self.target_amount) * 100, 2)
+        return round((float(self.current_amount) / target) * 100, 2)
 
     @property
     def status(self):
-        if self.current_amount >= self.target_amount:
+        if float(self.current_amount) >= float(self.target_amount):
             return "completed"
         return "in_progress"
 
     @property
     def remaining_amount(self):
-        return max(0, float(self.target_amount - self.current_amount))
+        return max(0, float(self.target_amount) - float(self.current_amount))
 
     @property
     def months_left(self):
@@ -56,14 +57,14 @@ class SavingsGoal(models.Model):
         ml = self.months_left
         if ml <= 0:
             return float(self.remaining_amount)
-        return round(self.remaining_amount / ml, 2)
+        return round(float(self.remaining_amount) / ml, 2)
 
     @property
     def delay_months(self):
         mc = float(self.monthly_contribution)
         if mc <= 0:
             return 0
-        months_needed = math.ceil(self.remaining_amount / mc)
+        months_needed = math.ceil(float(self.remaining_amount) / mc)
         return max(0, months_needed - self.months_left)
 
 

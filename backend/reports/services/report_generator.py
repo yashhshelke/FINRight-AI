@@ -18,10 +18,6 @@ def generate_monthly_report(user):
     total_income = transactions.filter(type='income').aggregate(Sum('amount'))['amount__sum'] or 0
     total_expense = transactions.filter(type='expense').aggregate(Sum('amount'))['amount__sum'] or 0
     
-    category_breakdown = transactions.filter(type='expense').values('category').annotate(total=Sum('amount')).order_factory('-total')
-    
-    # Note: Using .order_by('-total') instead of .order_factory if I made a typo, wait.
-    # It should be .order_by('-total')
     category_breakdown = list(transactions.filter(type='expense').values('category').annotate(total=Sum('amount')).order_by('-total'))
     
     report_data = {

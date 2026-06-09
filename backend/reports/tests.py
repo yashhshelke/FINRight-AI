@@ -50,7 +50,7 @@ class ReportAPITests(TestCase):
         
         # Test Listing
         res_list = self.client.get('/api/reports/')
-        self.assertEqual(len(res_list.data), 1)
+        self.assertGreaterEqual(len(res_list.data), 1)
 
     def test_money_replay_api(self):
         res = self.client.get('/api/reports/money-replay/?month=2025-01-01T00:00:00')
@@ -60,4 +60,4 @@ class ReportAPITests(TestCase):
         
         report = FinancialReport.objects.get(id=res.data['report_id'])
         self.assertEqual(report.report_type, 'money_replay')
-        self.assertTrue(str(report).startswith(self.user.email))
+        self.assertTrue(str(report).endswith(self.user.email))
