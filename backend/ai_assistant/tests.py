@@ -9,8 +9,10 @@ from ai_assistant.services.financial_engine import (
     calculate_required_sip,
     get_financial_health_score,
     get_subscription_hunter,
-    get_daily_briefing
+    get_daily_briefing,
+    get_affordability_analysis
 )
+from unittest.mock import patch
 
 User = get_user_model()
 
@@ -97,3 +99,34 @@ class FinancialEngineTests(TestCase):
         briefing = get_daily_briefing(self.user)
         self.assertEqual(briefing["yesterday_spent"], 420.0)
         self.assertIn("food delivery", briefing["recommendation"].lower())
+
+    @patch('ai_assistant.services.financial_engine.get_cashflow_analysis')
+    def test_affordability_analysis_outright(self, mock_cashflow):
+        """Test Future Self Simulator for an outright purchase (Laptop)"""
+        # Mock cashflow so we have a predictable 10,000 monthly disposable income
+        mock_cashflow.return_value = {'avg_monthly_savings': 10000, 'avg_monthly_expenses': 30000}
+        
+        now = timezone.now()
+        Transaction.objects.create(user=self.user, amount=Decimal('100000.00'), type="income", category="Salary", date=now - timedelta(days=60))
+        Transaction.objects.create(user=self.user, amount=Decimal('30000.00'), type="expense", category="Rent", date=now - timedelta(days=60))
+        
+        # User has 70,000 savings. Target is 1,00,000. Need 30,000 more. At 10k/month, it takes 3 months.
+        res = get_affordability_analysis(self.user, target_amount=100000, item_name="Laptop")
+        self.assertFalse(res["is_affordable"])
+        self.assertEqual(res["projected_months_to_save"], 3.0)
+        self.assertEqual(res["current_savings"], 70000)
+
+    @patch('ai_assistant.services.financial_engine.get_cashflow_analysis')
+    def test_affordability_analysis_emi(self, mock_cashflow):
+        """Test Future Self Simulator for an EMI purchase (Bike)"""
+        # Mock cashflow so we have a predictable 10,000 monthly disposable income
+        mock_cashflow.return_value = {'avg_monthly_savings': 10000, 'avg_monthly_expenses': 30000}
+        
+        now = timezone.now()
+        Transaction.objects.create(user=self.user, amount=Decimal('100000.00'), type="income", category="Salary", date=now)
+        Transaction.objects.create(user=self.user, amount=Decimal('30000.00'), type="expense", category="Rent", date=now)
+        
+        # EMI is 5000 / month. Disposable is 10000. It is affordable.
+        res = get_affordability_analysis(self.user, target_amount=5000, item_name="Bike EMI", is_emi=True, emi_months=1)
+        self.assertTrue(res["is_affordable"])
+        self.assertIn("comfortably afford", res["analysis_message"])

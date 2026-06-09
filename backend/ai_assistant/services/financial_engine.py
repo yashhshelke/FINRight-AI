@@ -380,6 +380,72 @@ def get_expense_forecast(user) -> Dict[str, Any]:
     }
 
 
+def get_affordability_analysis(user, target_amount: float, item_name: str, is_emi: bool = False, emi_months: int = 0) -> dict:
+    """
+    Simulates if a user can afford a specific purchase or save a target amount (Future Self Simulator).
+    """
+    target_amount = float(target_amount)
+    cashflow = get_cashflow_analysis(user)
+    
+    # Use cached or calculated all-time savings (current liquid cash)
+    all_time_income = sum(float(t.amount or 0) for t in Transaction.objects.filter(user=user, type='income'))
+    all_time_expense = sum(float(t.amount or 0) for t in Transaction.objects.filter(user=user, type='expense'))
+    current_savings = max(0, all_time_income - all_time_expense)
+    
+    monthly_disposable = cashflow.get('avg_monthly_savings', 0)
+    
+    # Affordability thresholds
+    is_affordable = False
+    warning = ""
+    months_to_save = 0
+    
+    if is_emi:
+        # EMI Affordability: Can their monthly disposable income comfortably cover the EMI?
+        emi_amount = target_amount / emi_months if emi_months > 0 else target_amount
+        if monthly_disposable > (emi_amount * 1.2):  # 20% buffer
+            is_affordable = True
+            warning = f"You can comfortably afford the ₹{emi_amount:,.0f} EMI. It takes up {(emi_amount/monthly_disposable)*100:.1f}% of your average monthly savings."
+        elif monthly_disposable > emi_amount:
+            is_affordable = True
+            warning = f"You can afford the ₹{emi_amount:,.0f} EMI, but it's tight! It consumes most of your monthly disposable income."
+        else:
+            is_affordable = False
+            warning = f"Warning: The ₹{emi_amount:,.0f} EMI exceeds your average monthly savings of ₹{monthly_disposable:,.0f}."
+    else:
+        # Outright Purchase: Can they buy it right now without draining their emergency buffer?
+        emergency_buffer = cashflow.get('avg_monthly_expenses', 0) * 2  # 2 months buffer
+        if current_savings >= (target_amount + emergency_buffer):
+            is_affordable = True
+            warning = f"Yes, you have enough liquid cash (₹{current_savings:,.0f}) to buy the {item_name} outright and still maintain a healthy emergency buffer."
+        elif current_savings >= target_amount:
+            is_affordable = True
+            warning = f"You can buy the {item_name} outright, but it will drain your emergency buffer to ₹{current_savings - target_amount:,.0f}."
+            if monthly_disposable > 0:
+                months_to_save = ((target_amount + emergency_buffer) - current_savings) / monthly_disposable
+                warning += f" Consider waiting {months_to_save:.1f} months to rebuild the buffer first."
+        else:
+            is_affordable = False
+            if monthly_disposable > 0:
+                months_to_save = (target_amount - current_savings) / monthly_disposable
+                warning = f"No, you currently have ₹{current_savings:,.0f}. At your current savings rate, it will take you {months_to_save:.1f} months to afford the {item_name}."
+            else:
+                warning = f"No, and you currently have negative or zero cashflow. You need to reduce expenses to save for the {item_name}."
+
+    return {
+        "item_name": item_name,
+        "target_amount": target_amount,
+        "is_emi": is_emi,
+        "current_savings": current_savings,
+        "monthly_disposable": monthly_disposable,
+        "is_affordable": is_affordable,
+        "analysis_message": warning,
+        "projected_months_to_save": months_to_save
+    }
+
+
+
+
+
 def build_money_replay(user, month_value: Optional[date | datetime] = None) -> Dict[str, Any]:
     month_value = month_value or _now()
     start, end = _month_range(month_value)
