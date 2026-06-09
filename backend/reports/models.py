@@ -4,6 +4,7 @@ from django.conf import settings
 class FinancialReport(models.Model):
     REPORT_TYPES = (
         ('monthly', 'Monthly Summary'),
+        ('money_replay', 'Money Replay Story'),
         ('weekly', 'Weekly Summary'),
         ('custom', 'Custom Range'),
     )

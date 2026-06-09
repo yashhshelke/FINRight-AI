@@ -8,6 +8,10 @@ from core.encryption import EncryptedDecimalField, EncryptedCharField
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     income = EncryptedDecimalField(max_digits=12, decimal_places=2, default='0.00')
+    age = models.PositiveSmallIntegerField(null=True, blank=True)
+    occupation = models.CharField(max_length=120, blank=True, default='')
+    city = models.CharField(max_length=120, blank=True, default='')
+    financial_goals = models.TextField(blank=True, default='')
     
     # Onboarding
     onboarding_completed = models.BooleanField(default=False)
@@ -79,7 +83,7 @@ NOTIFICATION_TYPES = [
     ('warning', 'Warning'),
     ('goal', 'Goal'),
     ('transaction', 'Transaction'),
-    ('wallet', 'Wallet'),
+    ('funds', 'Funds'),
     ('system', 'System'),
 ]
 

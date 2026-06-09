@@ -72,25 +72,25 @@ def notify_goal_completed(user, goal_title):
     )
 
 
-def notify_wallet_deposit(user, amount):
-    """Notification when money is added to wallet."""
+def notify_funds_deposit(user, amount):
+    """Notification when a funds deposit is recorded."""
     notify(
         user,
-        title='Wallet Deposit',
-        message=f'₹{amount:,.0f} has been added to your wallet.',
-        notification_type='wallet',
-        link='/dashboard/wallet',
+        title='Funds Added',
+        message=f'₹{amount:,.0f} has been added to your account.',
+        notification_type='funds',
+        link='/dashboard',
     )
 
 
-def notify_wallet_withdrawal(user, amount):
-    """Notification when money is withdrawn from wallet."""
+def notify_funds_withdrawal(user, amount):
+    """Notification when a funds withdrawal is recorded."""
     notify(
         user,
-        title='Wallet Withdrawal',
-        message=f'₹{amount:,.0f} has been withdrawn from your wallet.',
-        notification_type='wallet',
-        link='/dashboard/wallet',
+        title='Funds Used',
+        message=f'₹{amount:,.0f} has been used from your account.',
+        notification_type='funds',
+        link='/dashboard',
     )
 
 
@@ -115,14 +115,14 @@ def notify_budget_warning(user, category, spent, limit):
         )
 
 
-def notify_low_balance(user, balance):
-    """Notification when wallet balance is low."""
+def notify_low_funds(user, balance):
+    """Notification when available funds are low."""
     notify(
         user,
-        title='Low Wallet Balance ⚠️',
-        message=f'Your wallet balance is ₹{balance:,.0f}. Consider adding funds.',
+        title='Low Funds ⚠️',
+        message=f'Your available funds are ₹{balance:,.0f}. Consider reviewing your budget.',
         notification_type='warning',
-        link='/dashboard/wallet',
+        link='/dashboard',
     )
 
 

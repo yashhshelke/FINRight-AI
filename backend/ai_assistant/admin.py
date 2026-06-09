@@ -2,26 +2,8 @@
 from django.contrib import admin
 from .models import (
     Document, ChatSession, ChatMessage, 
-    Wallet, WalletTransaction,
     FinancialHealthScore, ScoreFactorDetail
 )
-
-
-@admin.register(Wallet)
-class WalletAdmin(admin.ModelAdmin):
-    list_display = ('user', 'balance', 'currency', 'is_active', 'created_at')
-    list_filter = ('is_active', 'currency', 'created_at')
-    search_fields = ('user__username', 'user__email')
-    readonly_fields = ('created_at', 'updated_at')
-
-
-@admin.register(WalletTransaction)
-class WalletTransactionAdmin(admin.ModelAdmin):
-    list_display = ('reference_id', 'wallet', 'transaction_type', 'amount', 'status', 'timestamp')
-    list_filter = ('transaction_type', 'status', 'timestamp')
-    search_fields = ('reference_id', 'wallet__user__username', 'description')
-    readonly_fields = ('timestamp', 'reference_id')
-    date_hierarchy = 'timestamp'
 
 
 @admin.register(FinancialHealthScore)

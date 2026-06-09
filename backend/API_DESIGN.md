@@ -6,7 +6,7 @@ It lists paths, HTTP methods, authentication requirements, short request/respons
 ## Base routing
 - Main includes shown in [core/urls.py](core/urls.py):
   - `/auth/` -> includes `users.urls` (authentication & profile)
-  - `/api/ai/` -> includes `ai_assistant.urls` (AI features, documents, chat, wallet, financial health)
+  - `/api/ai/` -> includes `ai_assistant.urls` (AI features, documents, chat, financial health)
   - `/api/users/` -> includes `users.urls` (user profile & settings)
   - `/api/transactions/` -> includes `transactions.urls`
   - `/api/goals/` -> includes `savings_goals.urls`
@@ -28,7 +28,8 @@ Note: `users.urls` is mounted twice: under `/auth/` and `/api/users/` (both expo
 
 **Users (`users.urls`) — mounted at `/auth/` and `/api/users/`**
 - POST `/register/` — Register new user. (AllowAny)
-  - Body: `username, email, password, password_confirm`
+  - Body: `full_name, email, password, password_confirm`
+  - Optional body fields: `age, occupation, monthly_income, financial_goals, city`
   - Response: 201 with `user` object
 
 - POST `/login/` — Login and receive `access` and `refresh` tokens. (AllowAny)
@@ -83,16 +84,41 @@ Notes: registration/login endpoints return well-formed JSON and use DRF generic 
   - Auth required.
   - Response: `{ answer, sources, session_id }`
 
+- POST `/api/ai/intelligence/` — Structured assistant endpoint.
+  - Body: `{ question, month?, amount?, purchase_amount?, horizon_months? }`
+  - Auth required.
+  - Response: structured JSON with `insight`, `recommendation`, `risk_level`, `source`, `confidence`, `tool`, and `data`.
+
+- POST `/api/ai/tools/` — Direct backend financial tool router.
+  - Body: `{ tool, month?, amount?, purchase_amount?, horizon_months? }`
+  - Auth required.
+  - Response: structured JSON backed by deterministic backend calculations.
+
+- POST `/api/ai/goal-investment/` — Goal-to-investment planner.
+  - Body: `{ goal_amount, years, current_amount?, expected_return_pct?, title? }` or `{ goals: [...] }`
+  - Auth required.
+  - Response: SIP estimate plus a goal roadmap with affordability analysis and call-to-action text.
+
+- GET `/api/ai/subscription-hunter/` — Subscription detection and cancellation suggestions.
+  - Query params: `lookback_days?`
+  - Auth required.
+  - Response: recurring subscriptions, inactivity days, and recoverable savings.
+
+- GET `/api/ai/money-replay/` — Month-end shareable story slides.
+  - Query params: `month?`
+  - Auth required.
+  - Response: slide deck data with monthly income, savings, biggest purchase, best and worst decisions, and share caption.
+
+- GET `/api/ai/knowledge/search/` — Verified educational knowledge search.
+  - Query params: `q` or `query`
+  - Auth required.
+  - Response: internal knowledge articles with verified citations.
+
+- Celery background jobs are available for nightly digests and report generation when broker settings are configured.
+
 - GET `/api/ai/chat/history/` — Global chat history for the user. (Auth required)
 - GET `/api/ai/chat-sessions/` — List chat sessions. (Auth required)
 - GET `/api/ai/chat-sessions/<session_id>/messages/` — Messages in a session. (Auth required)
-
-- Wallet endpoints (Auth required):
-  - GET `/api/ai/wallet/` — Get wallet balance and metadata.
-  - POST `/api/ai/wallet/add-money/` — Add money (body: `amount`, `description`). Returns transaction record.
-  - POST `/api/ai/wallet/withdraw/` — Withdraw money (body: `amount`, `description`). Returns transaction.
-  - GET `/api/ai/wallet/transactions/` — Paginated wallet transactions. Query params supported: `page`, `page_size`, `type`, `start_date`, `end_date`.
-  - GET `/api/ai/wallet/timeline/` — Timeline grouped by date. Query params `start_date`, `end_date`.
 
 - POST `/api/ai/simulate/` — Run financial scenario simulation. (Auth required)
   - Body: `{ scenario, amount, current_score?, details? }`
@@ -124,12 +150,12 @@ Notes: creation invalidates cache keys used by health calculators.
 
 ---
 
-**Savings Goals (`/api/goals/`)**
+**AI Goal Planner (`/api/goals/`)**
 - GET `/api/goals/` — List user's savings goals. (Auth required)
 - POST `/api/goals/` — Create a new savings goal. (Auth required)
 - GET/PUT/PATCH/DELETE `/api/goals/<id>/` — Retrieve/update/delete a goal. (Auth required)
 
-Notes: updates trigger milestone notifications and progress checks.
+Notes: this module powers the AI Goal Planner experience. Updates trigger milestone notifications and progress checks.
 
 ---
 
@@ -153,7 +179,7 @@ Notes: updates trigger milestone notifications and progress checks.
 - Auth: endpoints returning tokens use `rest_framework_simplejwt` in `users.views.refresh_token_view`.
 - Credit billing: document processing, simulations, and credit-analysis deduct user credits. Clients must handle `402 PAYMENT REQUIRED` when credits insufficient.
 - Side-effects: several endpoints create notifications; bulk operations invalidate cache keys used by financial health computations.
-- Pagination: wallet transactions use page-size `20` by default with `page_size` param supported.
+- Pagination: general list endpoints use page-size `20` by default where configured.
 
 ## Next steps (optional)
 - Generate OpenAPI/Swagger from views/serializers (DRF `SchemaGenerator` or `drf-yasg`).

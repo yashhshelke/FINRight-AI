@@ -17,13 +17,12 @@ from .views import (
     GoalPlanAnalysisAPIView,
     GoalIncomeSimulationAPIView,
     BudgetAdviceAPIView,
-)
-from .wallet_views import (
-    get_wallet,
-    add_money,
-    withdraw_money,
-    get_transactions,
-    get_timeline,
+    FinancialToolAPIView,
+    FinexaIntelligenceAPIView,
+    GoalInvestmentPlanAPIView,
+    SubscriptionHunterAPIView,
+    MoneyReplayAPIView,
+    KnowledgeBaseSearchAPIView,
 )
 from .financial_health_views import (
     get_current_score,
@@ -52,13 +51,6 @@ urlpatterns = [
     path("chat-sessions/", ChatSessionListAPIView.as_view(), name="chat-session-list"),
     path("chat-sessions/<int:session_id>/messages/", ChatMessageListAPIView.as_view(), name="chat-message-list"),
 
-    # Wallet endpoints
-    path("wallet/", get_wallet, name="wallet-detail"),
-    path("wallet/add-money/", add_money, name="wallet-add-money"),
-    path("wallet/withdraw/", withdraw_money, name="wallet-withdraw"),
-    path("wallet/transactions/", get_transactions, name="wallet-transactions"),
-    path("wallet/timeline/", get_timeline, name="wallet-timeline"),
-
     # Financial Health Score endpoints
     path("financial-health/score/", get_current_score, name="financial-health-score"),
     path("financial-health/history/", get_score_history, name="financial-health-history"),
@@ -72,10 +64,19 @@ urlpatterns = [
     path("loans/", LoanListCreateAPIView.as_view(), name="ai-loans"),
     path("spending-analysis/", SpendingAnalysisAPIView.as_view(), name="ai-spending-analysis"),
 
-    # Goal-Based Financial Planning
+    # AI Goal Planner
     path("goal-plan/", GoalPlanAnalysisAPIView.as_view(), name="ai-goal-plan"),
+    path("goal-planner/", GoalPlanAnalysisAPIView.as_view(), name="ai-goal-planner"),
     path("goal-plan/simulate/", GoalIncomeSimulationAPIView.as_view(), name="ai-goal-simulate"),
 
     # Budget Advice
     path("budget-advice/", BudgetAdviceAPIView.as_view(), name="ai-budget-advice"),
+
+    # Structured assistant and tool router
+    path("tools/", FinancialToolAPIView.as_view(), name="ai-financial-tools"),
+    path("intelligence/", FinexaIntelligenceAPIView.as_view(), name="ai-finexa-intelligence"),
+    path("goal-investment/", GoalInvestmentPlanAPIView.as_view(), name="ai-goal-investment"),
+    path("subscription-hunter/", SubscriptionHunterAPIView.as_view(), name="ai-subscription-hunter"),
+    path("money-replay/", MoneyReplayAPIView.as_view(), name="ai-money-replay"),
+    path("knowledge/search/", KnowledgeBaseSearchAPIView.as_view(), name="ai-knowledge-search"),
 ]

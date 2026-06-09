@@ -8,7 +8,7 @@ from decimal import Decimal
 from datetime import datetime, timedelta, date as date_type
 from django.db.models import Count, Sum
 from django.utils import timezone
-from ..models import WalletTransaction, Wallet, FinancialHealthScore, ScoreFactorDetail, Loan
+from ..models import FinancialHealthScore, ScoreFactorDetail, Loan
 from transactions.models import Transaction
 
 
@@ -181,9 +181,8 @@ class FinancialHealthCalculator:
                 savings_score = 0
 
             # --- emergency fund (0-6) ---
-            # Use wallet balance as proxy for liquid emergency fund
-            wallet = Wallet.objects.filter(user=self.user).first()
-            balance = float(wallet.balance) if wallet else 0
+            # Use current monthly savings as a proxy for liquid reserve.
+            balance = max(0.0, savings)
             monthly_exp = expenses if expenses > 0 else 1
             months_covered = balance / monthly_exp
 
@@ -202,7 +201,7 @@ class FinancialHealthCalculator:
                 'expenses': round(expenses, 2),
                 'savings': round(savings, 2),
                 'savings_rate': round(savings / income, 3) if income else 0,
-                'wallet_balance': balance,
+                'liquid_buffer': balance,
                 'months_covered': round(months_covered, 1),
             }
             expl = (f"Savings Ratio: {total}/20 — "
@@ -286,11 +285,11 @@ class FinancialHealthCalculator:
         """
         try:
             start, end = self._month_range(month_date)
+            income = self._total_income(start, end)
             expenses = self._total_expenses(start, end)
 
             # --- emergency fund (0-10) ---
-            wallet = Wallet.objects.filter(user=self.user).first()
-            balance = float(wallet.balance) if wallet else 0
+            balance = max(0.0, income - expenses)
             monthly_exp = expenses if expenses > 0 else 1
             months_reserve = balance / monthly_exp
 
@@ -343,7 +342,7 @@ class FinancialHealthCalculator:
 
             total = max(0, min(20, emerg + stability))
             metrics = {
-                'wallet_balance': balance,
+                'liquid_buffer': balance,
                 'months_reserve': round(months_reserve, 1),
                 'monthly_incomes': [round(m, 2) for m in monthly_incomes],
                 'income_variance': round(variance, 3) if avg_inc > 0 else 0,

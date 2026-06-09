@@ -24,6 +24,16 @@ from django.utils import timezone
 
 
 from django.db import transaction
+from .services.financial_engine import (
+    route_financial_tool,
+    detect_intent,
+    build_structured_ai_response,
+    build_educational_response,
+    build_goal_to_investment_plan,
+    get_subscription_hunter,
+    build_money_replay,
+)
+from .services.knowledge_base import search_verified_knowledge, get_verified_articles
 
 def deduct_credits(user, amount):
     if user.credits < amount:
@@ -748,4 +758,155 @@ class ChatAPIView(APIView):
             "answer": answer,
             "sources": sources,
             "session_id": session.id,
-        })
+        })
+
+
+class FinancialToolAPIView(APIView):
+    """POST /api/ai/tools/ -> direct access to backend financial calculations."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        tool_name = (request.data.get("tool") or "").strip()
+        if not tool_name:
+            return Response({"error": "tool is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        tool_result = route_financial_tool(tool_name, request.user, request.data)
+        if tool_result.get("error"):
+            return Response(tool_result, status=status.HTTP_400_BAD_REQUEST)
+
+        assistant_response = build_structured_ai_response(
+            request.data.get("question", ""),
+            tool_name,
+            tool_result,
+        )
+
+        payload = {
+            **assistant_response,
+            "tool": tool_name,
+            "data": tool_result["result"],
+        }
+        return Response(payload)
+
+
+class FinexaIntelligenceAPIView(APIView):
+    """POST /api/ai/intelligence/ -> intent detection + tool routing + structured JSON output."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        question = (request.data.get("question") or "").strip()
+        if not question:
+            return Response({"error": "question is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        intent = detect_intent(question)
+        if intent == "educational":
+            response = build_educational_response(question)
+            return Response({**response, "tool": None, "data": {}})
+
+        tool_result = route_financial_tool(intent, request.user, request.data)
+        if tool_result.get("error"):
+            return Response(tool_result, status=status.HTTP_400_BAD_REQUEST)
+
+        response = build_structured_ai_response(question, intent, tool_result)
+        return Response({
+            **response,
+            "tool": intent,
+            "data": tool_result["result"],
+        })
+
+
+class GoalInvestmentPlanAPIView(APIView):
+    """POST /api/ai/goal-investment/ -> deterministic SIP and goal roadmap planner."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        payload = dict(request.data)
+        if request.data.get("goal_amount") is None and request.data.get("goals") is None:
+            payload["question"] = request.data.get("question", "")
+
+        plan = build_goal_to_investment_plan(request.user, payload)
+        if plan.get("error"):
+            return Response(plan, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "insight": plan["insight"],
+            "recommendation": plan["recommendation"],
+            "risk_level": plan["risk_level"],
+            "source": plan["source"],
+            "confidence": plan["confidence"],
+            "tool": "goal_investment",
+            "data": plan,
+        })
+
+
+class SubscriptionHunterAPIView(APIView):
+    """GET /api/ai/subscription-hunter/ -> detect recurring and inactive subscriptions."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        lookback_days = request.query_params.get("lookback_days", 180)
+        try:
+            lookback_days = int(lookback_days)
+        except Exception:
+            lookback_days = 180
+
+        result = get_subscription_hunter(request.user, lookback_days=lookback_days)
+        return Response({
+            "insight": f"I found {result['subscription_count']} subscription pattern(s) and ₹{result['recoverable_monthly_savings']:,.2f} in recoverable monthly savings.",
+            "recommendation": "Cancel inactive subscriptions first and review active recurring services every month.",
+            "risk_level": "medium" if result["recoverable_monthly_savings"] > 0 else "low",
+            "source": result["source"],
+            "confidence": result["confidence"],
+            "tool": "subscription_hunter",
+            "data": result,
+        })
+
+
+class MoneyReplayAPIView(APIView):
+    """GET /api/ai/money-replay/ -> month-end story slides."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        month = request.query_params.get("month")
+        month_value = None
+        if month:
+            from datetime import datetime
+            try:
+                month_value = datetime.fromisoformat(month)
+            except Exception:
+                month_value = None
+
+        result = build_money_replay(request.user, month_value=month_value)
+        return Response({
+            "insight": result["share_caption"],
+            "recommendation": "Use the slides to share your monthly story and reflect on one habit to improve next month.",
+            "risk_level": "low",
+            "source": result["source"],
+            "confidence": result["confidence"],
+            "tool": "money_replay",
+            "data": result,
+        })
+
+
+class KnowledgeBaseSearchAPIView(APIView):
+    """GET /api/ai/knowledge/search/ -> verified educational knowledge search."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        query = (request.query_params.get("q") or request.query_params.get("query") or "").strip()
+        if not query:
+            return Response({"error": "query is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        articles = search_verified_knowledge(query, top_k=3)
+        return Response({
+            "source": "Finexa Internal Knowledge Base",
+            "confidence": "medium" if articles else "low",
+            "query": query,
+            "results": articles,
+            "available_articles": get_verified_articles(),
+        })

@@ -68,7 +68,7 @@ class SavingsGoal(models.Model):
 
 
 class GoalPlanAnalysis(models.Model):
-    """Caches AI-generated goal planning analysis."""
+    """Caches AI-generated AI Goal Planner analysis."""
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     analysis_data = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -78,4 +78,4 @@ class GoalPlanAnalysis(models.Model):
         indexes = [models.Index(fields=['user', '-created_at'])]
 
     def __str__(self):
-        return f"GoalPlan({self.user.email}, {self.created_at.date()})"
+        return f"AIGoalPlanner({self.user.email}, {self.created_at.date()})"

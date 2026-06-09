@@ -2,12 +2,12 @@ import json
 from datetime import timedelta
 from django.utils import timezone
 from transactions.models import Transaction
-from ai_assistant.models import WalletTransaction, SpendingPattern
+from ai_assistant.models import SpendingPattern
 from .llm_client import LLMServiceBusyError, generate_text, strip_json_fences
 
 def analyze_user_spending(user):
     """
-    Analyzes user's transaction history (Wallet + Manual Transactions)
+    Analyzes user's transaction history.
     using ChatGPT to identify patterns and generate recommendations.
     
     Returns:
@@ -17,31 +17,24 @@ def analyze_user_spending(user):
     # 1. Gather Data (recent window first, all-time fallback)
     thirty_days_ago = timezone.now() - timedelta(days=30)
 
-    # Fetch recent manual transactions and wallet transactions.
+    # Fetch recent transactions.
     recent_manual_txns = list(Transaction.objects.filter(
         user=user,
         date__gte=thirty_days_ago
     ))
-    recent_wallet_txns = list(WalletTransaction.objects.filter(
-        wallet__user=user,
-        timestamp__gte=thirty_days_ago
-    ))
 
-    # If statements were uploaded with older dates, include all history
-    # so Spending Insights does not miss imported data.
-    if recent_manual_txns or recent_wallet_txns:
+    # If recent activity exists, analyze the recent window.
+    if recent_manual_txns:
         manual_txns = recent_manual_txns
-        wallet_txns = recent_wallet_txns
         period_label = "Last 30 Days"
     else:
         manual_txns = list(Transaction.objects.filter(user=user))
-        wallet_txns = list(WalletTransaction.objects.filter(wallet__user=user))
         period_label = "All Time"
     
     # Format for LLM
     txn_summary = f"Transactions ({period_label}):\n"
     
-    if not manual_txns and not wallet_txns:
+    if not manual_txns:
         return {
             "patterns": ["No activity detected yet."],
             "anomalies": [],
@@ -51,11 +44,6 @@ def analyze_user_spending(user):
     for t in manual_txns:
         txn_summary += f"- {t.date.strftime('%Y-%m-%d')}: {t.type.upper()} ({t.category}) ₹{t.amount}\n"
         
-    for t in wallet_txns:
-        t_type = t.transaction_type
-        desc = t.description or "Wallet txn"
-        txn_summary += f"- {t.timestamp.strftime('%Y-%m-%d')}: WALLET {t_type} - {desc} ₹{t.amount}\n"
-        
     # Collect category sums
     cat_totals = {}
     total_spent = 0
@@ -64,14 +52,6 @@ def analyze_user_spending(user):
     for t in manual_txns:
         if t.type == 'expense':
             cat = t.category or "Other"
-            amt = float(t.amount or 0)
-            cat_totals[cat] = cat_totals.get(cat, 0) + amt
-            total_spent += amt
-            total_txns += 1
-            
-    for t in wallet_txns:
-        if t.transaction_type == 'DEBIT':
-            cat = "Wallet Payment"
             amt = float(t.amount or 0)
             cat_totals[cat] = cat_totals.get(cat, 0) + amt
             total_spent += amt

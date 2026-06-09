@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import FinancialReport
 from .serializers import FinancialReportSerializer
 from .services.report_generator import generate_monthly_report
+from .services.story_generator import generate_money_replay
 
 class ReportListCreateAPIView(generics.ListCreateAPIView):
     """
@@ -30,6 +31,28 @@ class ReportListCreateAPIView(generics.ListCreateAPIView):
         
         serializer = self.get_serializer(report)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class MoneyReplayAPIView(generics.GenericAPIView):
+    """GET /api/reports/money-replay/ -> generate the shareable month-end story."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        month = request.query_params.get("month")
+        story = generate_money_replay(request.user, month=month)
+
+        report = FinancialReport.objects.create(
+            user=request.user,
+            title=story["title"],
+            report_type='money_replay',
+            data=story,
+        )
+
+        return Response({
+            "report_id": report.id,
+            **story,
+        }, status=status.HTTP_200_OK)
 
 # Add timezone import for create method
 from django.utils import timezone

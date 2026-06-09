@@ -9,6 +9,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
+from django.utils.text import slugify
 
 User = get_user_model()
 
@@ -27,6 +28,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         ValidationError: If email already exists, passwords don't match,
                         or password doesn't meet strength requirements
     """
+    full_name = serializers.CharField(required=True, write_only=True)
     email = serializers.EmailField(
         required=True,
         validators=[UniqueValidator(
@@ -46,16 +48,18 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         required=True,
         style={'input_type': 'password'}
     )
+    age = serializers.IntegerField(required=False, allow_null=True)
+    occupation = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    monthly_income = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, write_only=True)
+    financial_goals = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    city = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'password_confirm')
-        extra_kwargs = {
-            'username': {
-                'required': True,
-                'help_text': 'Username must be unique and contain 150 characters or fewer.'
-            }
-        }
+        fields = (
+            'full_name', 'email', 'password', 'password_confirm',
+            'age', 'occupation', 'monthly_income', 'financial_goals', 'city',
+        )
 
     def validate(self, attrs):
         """
@@ -76,6 +80,16 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             )
         return attrs
 
+    def _build_username(self, full_name: str, email: str) -> str:
+        base = slugify(full_name or email.split('@')[0]) or email.split('@')[0]
+        base = base[:30]
+        candidate = base
+        suffix = 1
+        while User.objects.filter(username=candidate).exists():
+            candidate = f"{base}{suffix}"
+            suffix += 1
+        return candidate
+
     def create(self, validated_data):
         """
         Create and return a new user instance with securely hashed password.
@@ -86,10 +100,29 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         Returns:
             User: Newly created user instance
         """
+        full_name = validated_data.pop('full_name', '').strip()
+        monthly_income = validated_data.pop('monthly_income', None)
+        email = validated_data['email']
+        username = self._build_username(full_name, email)
+
+        first_name = ''
+        last_name = ''
+        if full_name:
+            name_parts = full_name.split()
+            first_name = name_parts[0]
+            last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
+
         user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            password=validated_data['password']
+            username=username,
+            email=email,
+            password=validated_data['password'],
+            first_name=first_name,
+            last_name=last_name,
+            age=validated_data.get('age'),
+            occupation=validated_data.get('occupation', '') or '',
+            city=validated_data.get('city', '') or '',
+            financial_goals=validated_data.get('financial_goals', '') or '',
+            income=monthly_income or 0,
         )
         return user
 
@@ -173,13 +206,17 @@ class UserProfileUpdateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'income')
+        fields = ('first_name', 'last_name', 'income', 'age', 'occupation', 'city', 'financial_goals')
     
     def update(self, instance, validated_data):
         """Update user profile fields"""
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)
         instance.income = validated_data.get('income', instance.income)
+        instance.age = validated_data.get('age', instance.age)
+        instance.occupation = validated_data.get('occupation', instance.occupation)
+        instance.city = validated_data.get('city', instance.city)
+        instance.financial_goals = validated_data.get('financial_goals', instance.financial_goals)
         instance.save()
         return instance
 
@@ -341,7 +378,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'is_active', 'date_joined', 'credits', 'income', 'onboarding_completed')
+        fields = ('id', 'email', 'username', 'first_name', 'last_name', 'age', 'occupation', 'city', 'financial_goals', 'is_active', 'date_joined', 'credits', 'income', 'onboarding_completed')
         read_only_fields = ('id', 'date_joined', 'email', 'username', 'is_active', 'credits')
 
 
@@ -442,8 +479,8 @@ class UserProfileFullSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'id', 'email', 'username', 'first_name', 'last_name',
-            'income', 'credits', 'is_active', 'date_joined',
+            'id', 'email', 'username', 'first_name', 'last_name', 'age',
+            'occupation', 'city', 'financial_goals', 'income', 'credits', 'is_active', 'date_joined',
             'onboarding_completed', 'email_verified', 'settings',
         )
         read_only_fields = fields

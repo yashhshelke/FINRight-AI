@@ -1,5 +1,5 @@
 """
-AI-Powered Goal-Based Financial Planning Service
+AI Goal Planner Service
 Uses ChatGPT to provide feasibility analysis, investment suggestions,
 behavioral coaching, and multi-goal prioritization.
 """
@@ -10,7 +10,7 @@ from decimal import Decimal
 
 from transactions.models import Transaction
 from savings_goals.models import SavingsGoal, GoalPlanAnalysis
-from ai_assistant.models import WalletTransaction, Wallet, FinancialHealthScore
+from ai_assistant.models import FinancialHealthScore
 from .llm_client import LLMServiceBusyError, generate_text, strip_json_fences
 
 
@@ -94,14 +94,6 @@ def _gather_user_financial_context(user):
             cat = t.category or 'Other'
             cat_spend[cat] = cat_spend.get(cat, 0) + float(t.amount or 0)
 
-    # Wallet balance
-    wallet_balance = 0
-    try:
-        w = Wallet.objects.get(user=user)
-        wallet_balance = float(w.balance)
-    except Wallet.DoesNotExist:
-        pass
-
     # Health score
     health_score = 50
     try:
@@ -133,7 +125,7 @@ def _gather_user_financial_context(user):
         'monthly_income': monthly_income,
         'monthly_expense': monthly_expense,
         'disposable_income': disposable_income,
-        'wallet_balance': wallet_balance,
+        'available_buffer': round(disposable_income, 2),
         'health_score': health_score,
         'category_spending': cat_spend,
         'goals': goals_data,
@@ -173,7 +165,7 @@ USER FINANCIAL CONTEXT:
 - Monthly Income: ₹{ctx['monthly_income']:,.0f}
 - Monthly Expenses: ₹{ctx['monthly_expense']:,.0f}
 - Disposable Income: ₹{ctx['disposable_income']:,.0f}
-- Wallet Balance: ₹{ctx['wallet_balance']:,.0f}
+- Available Monthly Buffer: ₹{ctx['available_buffer']:,.0f}
 - Financial Health Score: {ctx['health_score']}/100
 - Monthly spending by category: {json.dumps(ctx['category_spending'])}
 - Total committed to goals: ₹{ctx['total_goals_contribution']:,.0f}/month
