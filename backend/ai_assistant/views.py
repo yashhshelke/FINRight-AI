@@ -910,3 +910,18 @@ class KnowledgeBaseSearchAPIView(APIView):
             "results": articles,
             "available_articles": get_verified_articles(),
         })
+
+
+class DailyBriefingAPIView(APIView):
+    """GET /api/ai/daily-briefing/ -> returns the daily digest."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        from .services.financial_engine import get_daily_briefing
+        try:
+            briefing = get_daily_briefing(request.user)
+            return Response(briefing)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

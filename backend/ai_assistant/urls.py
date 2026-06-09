@@ -23,6 +23,7 @@ from .views import (
     SubscriptionHunterAPIView,
     MoneyReplayAPIView,
     KnowledgeBaseSearchAPIView,
+    DailyBriefingAPIView,
 )
 from .financial_health_views import (
     get_current_score,
@@ -79,4 +80,5 @@ urlpatterns = [
     path("subscription-hunter/", SubscriptionHunterAPIView.as_view(), name="ai-subscription-hunter"),
     path("money-replay/", MoneyReplayAPIView.as_view(), name="ai-money-replay"),
     path("knowledge/search/", KnowledgeBaseSearchAPIView.as_view(), name="ai-knowledge-search"),
+    path("daily-briefing/", DailyBriefingAPIView.as_view(), name="ai-daily-briefing"),
 ]

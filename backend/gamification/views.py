@@ -86,7 +86,12 @@ def gamification_summary(request):
     GET /api/gamification/summary/
     Combined overview: challenges stats, badges, streaks.
     """
+    from .services import evaluate_streaks_and_challenges
     user = request.user
+    
+    # Auto-evaluate streaks before returning summary
+    evaluate_streaks_and_challenges(user)
+    
     user_challenges = UserChallenge.objects.filter(user=user)
     completed = user_challenges.filter(completed=True).count()
     total = user_challenges.count()

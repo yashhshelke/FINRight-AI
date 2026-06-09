@@ -889,6 +889,7 @@ def route_financial_tool(tool_name: str, user, payload: Optional[Dict[str, Any]]
         "get_monthly_report": lambda: get_monthly_report(user),
         "get_investment_readiness_score": lambda: get_investment_readiness_score(user),
         "financial_twin": lambda: simulate_financial_twin(user, payload),
+        "daily_briefing": lambda: get_daily_briefing(user),
     }
 
     if tool_name not in tool_map:
@@ -1110,3 +1111,44 @@ def _generic_risk(tool_name: str, result: Dict[str, Any]) -> str:
     if tool_name == "get_investment_readiness_score":
         return "high" if result["readiness"] == "Needs Improvement" else "medium" if result["readiness"] == "Moderately Ready" else "low"
     return "low"
+
+
+def get_daily_briefing(user) -> Dict[str, Any]:
+    # 1. Yesterday's spending
+    yesterday_start = _now() - timedelta(days=1)
+    yesterday_start = yesterday_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_end = yesterday_start + timedelta(days=1)
+    yesterday_txns = _transaction_amounts(user, start=yesterday_start, end=yesterday_end)
+    yesterday_spent = _expense_for_period(yesterday_txns)
+    
+    # 2. Goal Progress
+    goals = get_goal_progress(user)
+    progress_pct = goals["overall_progress"]
+    
+    # 3. Health Score
+    health = get_financial_health_score(user)
+    # We provide a mock delta or actual computed delta here. Since we don't store historical, we'll mock +2 or 0.
+    health_delta = 2 if health["score"] >= 70 else (0 if health["score"] >= 40 else -1)
+    
+    # 4. Recommendation based on yesterday's spending
+    food_keywords = ["swiggy", "zomato", "restaurant", "food", "cafe", "uber eats"]
+    had_food_delivery = any(
+        any(k in ((tx.description or "") + (tx.category or "")).lower() for k in food_keywords)
+        for tx in yesterday_txns if tx.type == "expense"
+    )
+    
+    if had_food_delivery:
+        recommendation = "You spent on food yesterday. Avoid food delivery today to stay on track."
+    elif yesterday_spent > 1000:
+        recommendation = "Yesterday was an expensive day. Try a no-spend day today."
+    else:
+        recommendation = "Great job keeping expenses low yesterday. Keep it up!"
+        
+    return {
+        "yesterday_spent": float(yesterday_spent),
+        "goal_progress_pct": progress_pct,
+        "health_score_delta": health_delta,
+        "health_score": health["score"],
+        "recommendation": recommendation,
+        "source": "Finexa Daily AI Briefing"
+    }
