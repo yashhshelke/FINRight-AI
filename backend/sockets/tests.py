@@ -32,10 +32,10 @@ class TestDocumentChatConsumer(TransactionTestCase):
         
         await communicator.disconnect()
 
-    @patch('sockets.consumers.chat_with_document')
-    async def test_receive_question_and_deduct_credits(self, mock_chat_with_document):
-        # Mock chat_with_document to prevent LLM calls
-        mock_chat_with_document.return_value = "Mocked AI Response"
+    @patch('sockets.consumers.chat_with_documents')
+    async def test_receive_question_and_deduct_credits(self, mock_chat_with_documents):
+        # Mock chat_with_documents to prevent LLM calls
+        mock_chat_with_documents.return_value = {"answer": "Mocked AI Response"}
         
         user = await sync_to_async(User.objects.create_user)(
             username='wsuser2', email='ws2@example.com', password='pw'

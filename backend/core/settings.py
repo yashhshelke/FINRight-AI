@@ -225,6 +225,12 @@ else:
         }
     }
 
+import sys
+if 'test' in sys.argv:
+    CACHES['default'] = {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+    }
+
 # ── REST Framework ─────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -259,6 +265,11 @@ REST_FRAMEWORK = {
     # ── Schema (drf-spectacular) ─────────────────────────────
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
+
+import sys
+if 'test' in sys.argv:
+    REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
+
 
 # ── JWT ────────────────────────────────────────────────────────
 SIMPLE_JWT = {
