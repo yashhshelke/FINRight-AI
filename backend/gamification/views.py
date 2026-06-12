@@ -42,6 +42,10 @@ class UserChallengeListView(generics.ListAPIView):
         return UserChallenge.objects.filter(user=user).select_related('challenge')
 
 
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
+
+@extend_schema(responses=UserChallengeSerializer)
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_challenge(request, pk):
@@ -79,6 +83,15 @@ class UserBadgeListView(generics.ListAPIView):
         return UserBadge.objects.filter(user=self.request.user).select_related('badge')
 
 
+@extend_schema(
+    responses=inline_serializer(
+        name='GamificationSummary',
+        fields={
+            'challenges': serializers.DictField(),
+            'badges': serializers.DictField(),
+        }
+    )
+)
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def gamification_summary(request):

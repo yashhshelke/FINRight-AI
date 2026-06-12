@@ -14,6 +14,7 @@ Examples:
     - GET  /api/documents/        - List documents
 """
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
     # Authentication endpoints (JWT-based)
@@ -26,4 +27,12 @@ urlpatterns = [
     path("api/goals/", include("savings_goals.urls")),
     path("api/gamification/", include("gamification.urls")),
     path("api/reports/", include("reports.urls")),
+
+    # ── OpenAPI / Swagger UI ──────────────────────────────────
+    # Access during development:  http://localhost:8000/api/schema/swagger/
+    # Download raw schema:        GET /api/schema/  (YAML or JSON)
+    # ReDoc (read-only, clean):   http://localhost:8000/api/schema/redoc/
+    path("api/schema/",         SpectacularAPIView.as_view(),          name="schema"),
+    path("api/schema/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
+    path("api/schema/redoc/",   SpectacularRedocView.as_view(url_name="schema"),   name="redoc"),
 ]

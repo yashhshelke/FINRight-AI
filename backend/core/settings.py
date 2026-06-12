@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "ai_assistant",
     "corsheaders",
     "rest_framework",
+    "drf_spectacular",             # OpenAPI schema generation
     "users",
     "transactions",
     "savings_goals",
@@ -58,6 +59,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "core.middleware.AuditLoggingMiddleware",
 ]
 
 _CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "")
@@ -127,9 +129,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False") == "True"
-SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True") == "True"
-CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True") == "True"
-SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "0"))
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True" if not DEBUG else "False") == "True"
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True" if not DEBUG else "False") == "True"
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "31536000" if not DEBUG else "0"))
 SECURE_HSTS_INCLUDE_SUBDOMAINS = os.getenv("SECURE_HSTS_INCLUDE_SUBDOMAINS", "True") == "True"
 SECURE_HSTS_PRELOAD = os.getenv("SECURE_HSTS_PRELOAD", "False") == "True"
 SECURE_CONTENT_TYPE_NOSNIFF = True
@@ -198,15 +200,29 @@ else:
     CELERY_RESULT_SERIALIZER = "json"
     CELERY_TIMEZONE = TIME_ZONE
     CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "False") == "True"
-    CELERY_BEAT_SCHEDULE = {
-        "nightly-financial-digest": {
-            "task": "ai_assistant.tasks.nightly_financial_digest",
-            "schedule": 60 * 60 * 24,
-        },
-        "sync-verified-knowledge-base": {
-            "task": "ai_assistant.tasks.sync_verified_knowledge_base",
-            "schedule": 60 * 60 * 24 * 7,
-        },
+# ── Cache backend ─────────────────────────────────────────────
+# Uses Redis (Upstash) in production when REDIS_URL is set.
+# Falls back to in-process LocMemCache for local development.
+# The health score cache, savings cache, and spending-analysis cache all
+# use this backend — so they actually survive across requests in prod.
+if _REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            },
+            "KEY_PREFIX": "finexa",
+            "TIMEOUT": 3600,          # default TTL: 1 hour
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "finexa-local",
+        }
     }
 
 # ── REST Framework ─────────────────────────────────────────────
@@ -217,16 +233,31 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,
+    # ── Pagination ───────────────────────────────────────────
+    # StandardResultsSetPagination (page_size=20, up to 100) is the global default.
+    # Individual views can override with ChatMessageCursorPagination etc.
+    "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardResultsSetPagination",
+    "PAGE_SIZE": 20,
+    # ── Throttling ───────────────────────────────────────────
+    # Scoped throttles are applied per-view (see core/throttles.py).
+    # Global fallback limits protect against bulk scraping.
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "anon": "100/hour",
-        "user": "1000/hour",
+        # ── Global fallback scopes ────────────────────────────
+        "anon": "60/hour",           # Public endpoints (IP-based)
+        "user": "500/hour",          # General authenticated endpoints
+        # ── Named scopes for expensive endpoints ──────────────
+        "llm":             "30/hour",  # /chat/ and /intelligence/
+        "document_upload": "5/hour",   # /document/process/
+        "simulation":      "20/hour",  # /simulate/ and /credit-analysis/
+        "goal_plan":       "10/hour",  # /goal-plan/?refresh=true
+        "burst_anon":      "20/hour",  # /register/, /login/, /forgot-password/
     },
+    # ── Schema (drf-spectacular) ─────────────────────────────
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 # ── JWT ────────────────────────────────────────────────────────
@@ -264,3 +295,32 @@ DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "noreply@finexa.ai")
 
 EMAIL_VERIFICATION_EXPIRY_HOURS = 24
 PASSWORD_RESET_EXPIRY_HOURS = 1
+
+# ── Logging (Audit Trail) ──────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'audit': {
+            'format': '{asctime} {levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'audit_file': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'security_audit.log',
+            'maxBytes': 1024 * 1024 * 5,  # 5 MB
+            'backupCount': 5,
+            'formatter': 'audit',
+        },
+    },
+    'loggers': {
+        'security_audit': {
+            'handlers': ['audit_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

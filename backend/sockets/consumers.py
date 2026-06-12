@@ -2,7 +2,7 @@
 import asyncio
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from asgiref.sync import sync_to_async
-from ai_assistant.services.document_chat import chat_with_document
+from ai_assistant.services.unified_rag_chat import chat_with_documents
 from ai_assistant.models import ChatSession, ChatMessage
 from django.contrib.auth.models import AnonymousUser
 
@@ -103,9 +103,10 @@ class DocumentChatConsumer(AsyncJsonWebsocketConsumer):
 
         # 4) Get LLM answer with document context (blocking → thread)
         try:
-            answer = await sync_to_async(chat_with_document)(
-                question, user.id, document_id
+            result = await sync_to_async(chat_with_documents)(
+                question=question, user_id=user.id, document_id=document_id
             )
+            answer = result.get("answer", "I'm sorry, I couldn't process that.")
         except Exception as e:
             await self.channel_layer.group_send(
                 self.room_group_name,

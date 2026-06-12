@@ -15,7 +15,7 @@ from .services.expense_extraction import (
     save_expense_document_to_mongo,
     get_expense_document_by_id,
 )
-from .services.expense_summary import summarize_expenses_from_data
+from .services.spending_insights import summarize_expenses_from_data
 
 import json
 from collections import defaultdict
@@ -48,9 +48,10 @@ class DocumentProcessAPIView(APIView):
     POST /api/ai/document/process/
     Cost: 5 Credits
     """
-
+    from core.throttles import DocumentUploadThrottle
     parser_classes = (MultiPartParser, FormParser)
     permission_classes = [IsAuthenticated]
+    throttle_classes = [DocumentUploadThrottle]  # 5 uploads/hour
 
     def post(self, request, *args, **kwargs):
         # 0. Deduct Credits (5 Credits)
@@ -335,7 +336,7 @@ class ExpenseSuggestionAPIView(APIView):
             except:
                 extracted = {}
 
-        from .services.expense_suggestions import generate_saving_suggestions
+        from .services.recommendation_engine import generate_saving_suggestions
 
         suggestions = generate_saving_suggestions(extracted)
 
@@ -364,11 +365,14 @@ class ChatSessionListAPIView(generics.ListAPIView):
 
 class ChatMessageListAPIView(generics.ListAPIView):
     """
-    GET /api/socket/chat-sessions/<session_id>/messages/
-    Paginated messages within a session.
+    GET /api/ai/chat-sessions/<session_id>/messages/
+    Cursor-paginated messages within a session (50 per page, newest-first).
+    Use the returned `cursor` token in subsequent requests for infinite-scroll.
     """
+    from core.pagination import ChatMessageCursorPagination
     serializer_class = ChatMessageSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = ChatMessageCursorPagination  # stable infinite-scroll pagination
 
     def get_queryset(self):
         session_id = self.kwargs["session_id"]
@@ -379,7 +383,10 @@ class ChatMessageListAPIView(generics.ListAPIView):
 
 
 
-from .services.simulation_service import simulate_financial_impact, analyze_credit_health
+from .services.financial_health import simulate_financial_impact, analyze_credit_health
+from core.throttles import SimulationThrottle
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 
 class SimulationAPIView(APIView):
     """
@@ -387,7 +394,23 @@ class SimulationAPIView(APIView):
     Body: { "scenario": "loan", "amount": 50000 }
     """
     permission_classes = [IsAuthenticated]
+    throttle_classes = [SimulationThrottle]  # 20 simulations/hour
 
+    @extend_schema(
+        request=inline_serializer(
+            name="SimulationRequest",
+            fields={
+                "scenario": serializers.CharField(),
+                "amount": serializers.FloatField(),
+                "current_score": serializers.IntegerField(required=False),
+                "details": serializers.DictField(required=False),
+            }
+        ),
+        responses=inline_serializer(
+            name="SimulationResponse",
+            fields={"insight": serializers.CharField(), "recommendation": serializers.CharField(), "data": serializers.DictField()}
+        )
+    )
     def post(self, request, *args, **kwargs):
         scenario = request.data.get("scenario")
         amount = request.data.get("amount")
@@ -422,7 +445,7 @@ class SimulationAPIView(APIView):
             )
 
 
-from .services.spending_analysis import analyze_user_spending
+from .services.spending_insights import analyze_user_spending
 from .models import SpendingPattern
 
 class SpendingAnalysisAPIView(APIView):
@@ -433,7 +456,14 @@ class SpendingAnalysisAPIView(APIView):
     If no recent analysis (last 24h) exists, it triggers a new one.
     """
     permission_classes = [IsAuthenticated]
+    throttle_classes = []  # no LLM call — purely deterministic; no extra throttle needed
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="SpendingAnalysisResponse",
+            fields={"analysis_data": serializers.DictField()}
+        )
+    )
     def get(self, request, *args, **kwargs):
         # 1. Check for recent cached analysis (e.g., last 24 hours)
         last_24h = timezone.now() - timedelta(hours=24)
@@ -486,7 +516,9 @@ class CreditAnalysisAPIView(APIView):
     POST /api/ai/credit-analysis/
     Body: { "loans": [...], "score": 750 }
     """
+    from core.throttles import SimulationThrottle
     permission_classes = [IsAuthenticated]
+    throttle_classes = [SimulationThrottle]  # 20 analyses/hour
 
     def post(self, request, *args, **kwargs):
         loans = request.data.get("loans", [])
@@ -511,9 +543,11 @@ class GoalPlanAnalysisAPIView(APIView):
     """
     GET /api/ai/goal-plan/
     Returns AI-powered comprehensive goal planning analysis.
-    Optional ?refresh=true to force re-analyze.
+    Optional ?refresh=true to force re-analyze (costs 15 credits + throttled to 10/hour).
     """
+    from core.throttles import GoalPlanThrottle
     permission_classes = [IsAuthenticated]
+    throttle_classes = [GoalPlanThrottle]  # 10 refreshes/hour
 
     def get(self, request, *args, **kwargs):
         from .services.goal_planning import analyze_goal_plan
@@ -687,7 +721,9 @@ class ChatAPIView(APIView):
             "session_id": 12
         }
     """
+    from core.throttles import LLMRateThrottle
     permission_classes = [IsAuthenticated]
+    throttle_classes = [LLMRateThrottle]  # 30 LLM calls/hour
 
     def post(self, request, *args, **kwargs):
         question = (request.data.get("question") or "").strip()
@@ -712,37 +748,39 @@ class ChatAPIView(APIView):
         # ── Save user message ────────────────────────────────────
         ChatMessage.objects.create(session=session, sender="user", text=question)
 
-        # ── Run RAG pipeline ─────────────────────────────────────
-        from .services.rag_service import retrieve_and_generate
-        from .services.expense_extraction import get_expense_document_by_id
+        # ── Run unified RAG pipeline ──────────────────────────────
+        # All retrieval goes through the SQL DocumentChunk vector store.
+        # MongoDB is never queried for retrieval; it holds only encrypted
+        # structured expense metadata (amounts, categories, merchants).
+        from .services.unified_rag_chat import chat_with_documents
 
-        # Determine if we should search SQL documents or a Mongo expense doc
         mongo_id = request.data.get("mongo_id")  # optional: chat over expense doc
+        doc_id = int(document_id) if document_id else None
 
         try:
-            if mongo_id:
-                # Chat over Mongo expense document
-                from .services.expense_chat import chat_with_expense_data
-                mongo_doc = get_expense_document_by_id(mongo_id)
-                if not mongo_doc:
-                    return Response({"error": "Expense document not found"}, status=404)
-                answer = chat_with_expense_data(
-                    question=question,
-                    expense_doc=mongo_doc,
-                    chat_history=chat_history,
+            result = chat_with_documents(
+                question=question,
+                user_id=request.user.id,
+                document_id=doc_id,
+                mongo_id=mongo_id or None,
+                chat_history=chat_history,
+            )
+            answer = result["answer"]
+            sources = result.get("sources", [])
+        except ValueError as exc:
+            if str(exc) == "no_sql_document":
+                # Option B: document was uploaded before chunked indexing existed.
+                return Response(
+                    {
+                        "error": (
+                            "This document was uploaded before the new secure storage "
+                            "system was introduced. Please re-upload your PDF to enable "
+                            "chat — your data will be indexed with full encryption."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
                 )
-                sources = []
-            else:
-                # Chat over SQL documents via RAG
-                doc_id = int(document_id) if document_id else None
-                result = retrieve_and_generate(
-                    question=question,
-                    user_id=request.user.id,
-                    document_id=doc_id,
-                    chat_history=chat_history,
-                )
-                answer = result["answer"]
-                sources = result["sources"]
+            raise
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -766,6 +804,16 @@ class FinancialToolAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request=inline_serializer(
+            name="FinancialToolRequest",
+            fields={"tool": serializers.CharField(), "question": serializers.CharField(required=False)}
+        ),
+        responses=inline_serializer(
+            name="FinancialToolResponse",
+            fields={"insight": serializers.CharField(), "tool": serializers.CharField(), "data": serializers.DictField()}
+        )
+    )
     def post(self, request, *args, **kwargs):
         tool_name = (request.data.get("tool") or "").strip()
         if not tool_name:
@@ -790,9 +838,10 @@ class FinancialToolAPIView(APIView):
 
 
 class FinexaIntelligenceAPIView(APIView):
-    """POST /api/ai/intelligence/ -> intent detection + tool routing + structured JSON output."""
-
+    """POST /api/ai/intelligence/ — intent detection + tool routing + structured JSON output."""
+    from core.throttles import LLMRateThrottle
     permission_classes = [IsAuthenticated]
+    throttle_classes = [LLMRateThrottle]  # 30 LLM-backed calls/hour
 
     def post(self, request, *args, **kwargs):
         question = (request.data.get("question") or "").strip()
@@ -846,6 +895,17 @@ class SubscriptionHunterAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="SubscriptionHunterResponse",
+            fields={
+                "insight": serializers.CharField(),
+                "recommendation": serializers.CharField(),
+                "tool": serializers.CharField(),
+                "data": serializers.DictField()
+            }
+        )
+    )
     def get(self, request, *args, **kwargs):
         lookback_days = request.query_params.get("lookback_days", 180)
         try:

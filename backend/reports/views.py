@@ -1,5 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from .models import FinancialReport
 from .serializers import FinancialReportSerializer
@@ -33,11 +34,24 @@ class ReportListCreateAPIView(generics.ListCreateAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class MoneyReplayAPIView(generics.GenericAPIView):
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
+
+class MoneyReplayAPIView(APIView):
     """GET /api/reports/money-replay/ -> generate the shareable month-end story."""
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="MoneyReplayResponse",
+            fields={
+                "report_id": serializers.IntegerField(),
+                "title": serializers.CharField(),
+                "slides": serializers.ListField(),
+            }
+        )
+    )
     def get(self, request, *args, **kwargs):
         month = request.query_params.get("month")
         story = generate_money_replay(request.user, month=month)

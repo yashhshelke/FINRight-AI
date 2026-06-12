@@ -8,7 +8,10 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.views import APIView
 from django.contrib.auth import get_user_model
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 
 from .serializers import (
     UserRegisterSerializer,
@@ -35,36 +38,19 @@ from .auth import generate_jwt_tokens
 User = get_user_model()
 
 
+from core.throttles import BurstAnonThrottle
+
 class RegisterAPIView(generics.CreateAPIView):
     """
     API endpoint for user registration.
-    
     POST /auth/register
-    
     Creates a new user account with email and password validation.
-    
-    Request body:
-        {
-            "username": "string",
-            "email": "user@example.com",
-            "password": "SecurePassword123!",
-            "password_confirm": "SecurePassword123!"
-        }
-    
-    Response (201 Created):
-        {
-            "id": 1,
-            "username": "string",
-            "email": "user@example.com"
-        }
-    
-    Raises:
-        400 Bad Request: If email already exists or passwords don't match
-        400 Bad Request: If password doesn't meet strength requirements
+    Throttle: 20 requests/hour per IP (brute-force protection).
     """
     queryset = User.objects.all()
     serializer_class = UserRegisterSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [BurstAnonThrottle]  # 20/hour per IP
 
     def create(self, request, *args, **kwargs):
         """Override create to return proper response format."""
@@ -113,6 +99,7 @@ class LoginAPIView(generics.GenericAPIView):
     """
     serializer_class = UserLoginSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [BurstAnonThrottle]  # 20/hour per IP — brute-force guard
 
     def post(self, request, *args, **kwargs):
         """
@@ -212,6 +199,16 @@ class UserProfileAPIView(generics.RetrieveAPIView):
         return self.request.user
 
 
+@extend_schema(
+    request=inline_serializer(
+        name="RefreshTokenRequest",
+        fields={"refresh": serializers.CharField()}
+    ),
+    responses=inline_serializer(
+        name="RefreshTokenResponse",
+        fields={"access": serializers.CharField()}
+    )
+)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def refresh_token_view(request):
@@ -320,6 +317,7 @@ class ForgotPasswordAPIView(generics.GenericAPIView):
     """
     serializer_class = ForgotPasswordSerializer
     permission_classes = [AllowAny]
+    throttle_classes = [BurstAnonThrottle]  # 20/hour per IP — stops email flooding
     
     def post(self, request, *args, **kwargs):
         """
@@ -592,13 +590,14 @@ class NotificationListAPIView(generics.ListAPIView):
         return Notification.objects.filter(user=self.request.user)
 
 
-class MarkNotificationReadAPIView(generics.GenericAPIView):
+class MarkNotificationReadAPIView(APIView):
     """
     API endpoint to mark a notification as read.
     POST /users/notifications/<id>/read/
     """
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=inline_serializer(name="MarkReadRes", fields={"status": serializers.CharField()}))
     def post(self, request, pk, *args, **kwargs):
         try:
             notification = Notification.objects.get(pk=pk, user=request.user)
@@ -609,25 +608,27 @@ class MarkNotificationReadAPIView(generics.GenericAPIView):
             return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
-class MarkAllNotificationsReadAPIView(generics.GenericAPIView):
+class MarkAllNotificationsReadAPIView(APIView):
     """
     API endpoint to mark all notifications as read.
     POST /users/notifications/mark-all-read/
     """
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=inline_serializer(name="MarkAllReadRes", fields={"status": serializers.CharField(), "marked": serializers.IntegerField()}))
     def post(self, request, *args, **kwargs):
         count = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         return Response({'status': 'success', 'marked': count}, status=status.HTTP_200_OK)
 
 
-class DeleteNotificationAPIView(generics.GenericAPIView):
+class DeleteNotificationAPIView(APIView):
     """
     API endpoint to delete a notification.
     DELETE /users/notifications/<id>/
     """
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses=None)
     def delete(self, request, pk, *args, **kwargs):
         try:
             notification = Notification.objects.get(pk=pk, user=request.user)
@@ -694,7 +695,7 @@ class OnboardingAPIView(generics.GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 
-class PurchaseCreditsAPIView(generics.GenericAPIView):
+class PurchaseCreditsAPIView(APIView):
     """
     API endpoint for purchasing AI credits.
     POST /auth/purchase-credits/
@@ -715,6 +716,18 @@ class PurchaseCreditsAPIView(generics.GenericAPIView):
         'elite':   {'credits': 500000, 'price': 1299},
     }
 
+    @extend_schema(
+        request=inline_serializer(name="PurchaseReq", fields={"plan_id": serializers.CharField()}),
+        responses=inline_serializer(
+            name="PurchaseRes",
+            fields={
+                "success": serializers.BooleanField(),
+                "plan": serializers.CharField(),
+                "credits_added": serializers.IntegerField(),
+                "total_credits": serializers.IntegerField(),
+            }
+        )
+    )
     def post(self, request, *args, **kwargs):
         plan_id = request.data.get('plan_id')
         if plan_id not in self.VALID_PLANS:
@@ -820,6 +833,17 @@ class UserProfileFullView(generics.RetrieveAPIView):
         return Response(profile_data)
 
 
+@extend_schema(
+    responses=inline_serializer(
+        name="ExportDataResponse",
+        fields={
+            "profile": serializers.DictField(),
+            "settings": serializers.DictField(),
+            "transactions": serializers.ListField(),
+            "notifications": serializers.ListField(),
+        }
+    )
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def export_user_data(request):

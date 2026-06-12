@@ -113,13 +113,24 @@ def embed_query(query: str) -> List[float]:
 
 # ── Cosine similarity ───────────────────────────────────────────
 
-def _cosine_similarity(a: List[float], b: List[float]) -> float:
+def cosine_similarity(a: List[float], b: List[float]) -> float:
+    """
+    Compute cosine similarity between two equal-length float vectors.
+
+    This is the canonical implementation used by all retrieval paths in
+    Finexa AI.  Import this function instead of re-implementing it.
+    Returns a value in [-1, 1]; higher means more similar.
+    """
     dot = sum(x * y for x, y in zip(a, b))
     mag_a = math.sqrt(sum(x * x for x in a))
     mag_b = math.sqrt(sum(x * x for x in b))
     if mag_a == 0 or mag_b == 0:
         return 0.0
     return dot / (mag_a * mag_b)
+
+
+# Private alias kept for internal usage within this file
+_cosine_similarity = cosine_similarity
 
 
 # ── Indexing (chunk + embed + store) ───────────────────────────
@@ -247,6 +258,7 @@ def retrieve_and_generate(
         dict with keys: answer, sources (list of chunk previews)
     """
     from .llm_client import generate_text
+    from .pii_scrubber import scrub_pii
 
     chunks = retrieve_chunks(question, user_id, document_id)
 
@@ -255,8 +267,9 @@ def retrieve_and_generate(
     if chunks:
         context_parts = []
         for i, chunk in enumerate(chunks, 1):
+            safe_text = scrub_pii(chunk['text'])
             context_parts.append(
-                f"[Source {i} — {chunk['document_name']}]\n{chunk['text']}"
+                f"[Source {i} — {chunk['document_name']}]\n{safe_text}"
             )
         context_str = "\n\n---\n\n".join(context_parts)
 

@@ -7,12 +7,12 @@ class GoalSerializer(serializers.ModelSerializer):
     current_amount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     monthly_contribution = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
 
-    progress_percentage = serializers.ReadOnlyField()
-    status = serializers.ReadOnlyField()
-    remaining_amount = serializers.ReadOnlyField()
-    months_left = serializers.ReadOnlyField()
-    required_monthly = serializers.ReadOnlyField()
-    delay_months = serializers.ReadOnlyField()
+    progress_percentage = serializers.FloatField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    remaining_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    months_left = serializers.IntegerField(read_only=True)
+    required_monthly = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    delay_months = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = SavingsGoal

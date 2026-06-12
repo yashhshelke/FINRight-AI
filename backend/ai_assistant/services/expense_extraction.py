@@ -17,7 +17,7 @@ from PIL import Image
 import pytesseract
 
 # Encryption utilities
-from core.encryption import encrypt_text, decrypt_text, encrypt_json, decrypt_json
+from core.encryption import encrypt_json, decrypt_json
 from .llm_client import LLMServiceBusyError, generate_text, strip_json_fences
 
 
@@ -247,14 +247,26 @@ def normalize_extracted_expenses(structured_data, raw_text: str):
 # ---------- Save document in MongoDB ----------
 
 def save_expense_document_to_mongo(user_id, uploaded_file, raw_text, structured_data):
+    """
+    Save structured expense metadata to MongoDB.
+
+    Security note: raw_text is intentionally NOT stored here.
+    The extracted text and its vector embeddings live exclusively in the
+    SQL DocumentChunk table (EncryptedTextField at rest).  MongoDB holds
+    only the encrypted structured expense summary used by the summary and
+    suggestion views — it is never used for retrieval.
+
+    The `raw_text` parameter is accepted for API compatibility but is
+    discarded here.  Callers may pass it; it will not be persisted.
+    """
     document = {
         "user_id": user_id,
         "file_name": uploaded_file.name,
         "content_type": getattr(uploaded_file, "content_type", None),
         "size": uploaded_file.size,
-        "raw_text": encrypt_text(raw_text),  # 🔒 Encrypted
-        "extracted_data": encrypt_json(structured_data),  # 🔒 Encrypted
-        "is_encrypted": True,  # Flag for migration awareness
+        # raw_text is NOT stored — retrieval uses SQL DocumentChunk (vector store)
+        "extracted_data": encrypt_json(structured_data),  # 🔒 Encrypted JSON
+        "is_encrypted": True,
         "created_at": datetime.utcnow(),
     }
     result = get_mongo_collection().insert_one(document)
@@ -283,17 +295,22 @@ def get_expense_document_by_id(doc_id: str):
 
 
 def _decrypt_mongo_document(doc):
-    """Decrypt encrypted fields in a MongoDB expense document."""
+    """
+    Decrypt encrypted fields in a MongoDB expense document.
+
+    Only extracted_data is decrypted — raw_text is no longer stored in MongoDB
+    (it was migrated to SQL DocumentChunk for secure vector-based retrieval).
+    Old documents that still have a raw_text field will have it silently ignored.
+    """
     if doc is None:
         return None
-    
-    # Check if document is encrypted (new format)
+
     if doc.get("is_encrypted"):
-        if isinstance(doc.get("raw_text"), str):
-            doc["raw_text"] = decrypt_text(doc["raw_text"])
+        # raw_text was removed from new documents; old docs may still have it
+        # but we no longer use it for retrieval — ignore it here.
         if isinstance(doc.get("extracted_data"), str):
             doc["extracted_data"] = decrypt_json(doc["extracted_data"])
-    
+
     return doc
 
 

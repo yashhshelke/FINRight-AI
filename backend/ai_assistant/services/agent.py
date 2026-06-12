@@ -3,9 +3,9 @@ import asyncio
 from typing import Any, Callable, Dict, Optional
 from .llm_client import generate_text
 
-from .expense_chat import chat_with_expense_data
+from .unified_rag_chat import chat_with_documents
 from .expense_extraction import get_mongo_collection
-from .expense_summary import summarize_expenses_from_data
+from .spending_insights import summarize_expenses_from_data
 
 from transactions.models import Transaction
 
@@ -28,7 +28,7 @@ class Agent:
         self,
         question: str,
         user,  # Django user or None
-        mongo_doc: Optional[Dict[str, Any]],
+        mongo_doc: Optional[Dict[str, Any]],  # kept for API compat; only _id is used
         send_fn: Callable[[Dict[str, Any]], Any],
     ) -> str:
         """Run the agent on a single user question.
@@ -115,5 +115,28 @@ class Agent:
         return "\n".join(lines)
 
     def _tool_answer_with_doc(self, question: str, mongo_doc: Optional[Dict[str, Any]]) -> str:
-        # fallback to the existing QA pipeline
-        return chat_with_expense_data(question, mongo_doc or {})
+        """Answer using the unified RAG pipeline (SQL DocumentChunk vector store)."""
+        if not mongo_doc:
+            return "No document context available."
+
+        from bson import ObjectId
+        mongo_id = str(mongo_doc.get("_id", ""))
+        # user_id is embedded in mongo_doc (set at upload time)
+        user_id = mongo_doc.get("user_id")
+        if not user_id:
+            return "Unable to identify the document owner."
+
+        try:
+            result = chat_with_documents(
+                question=question,
+                user_id=user_id,
+                mongo_id=mongo_id or None,
+            )
+            return result.get("answer", "No answer found.")
+        except ValueError as exc:
+            if str(exc) == "no_sql_document":
+                return (
+                    "This document was uploaded before the new secure storage system. "
+                    "Please re-upload your PDF to enable chat."
+                )
+            raise

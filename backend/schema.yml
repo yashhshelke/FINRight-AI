@@ -1,0 +1,4051 @@
+openapi: 3.0.3
+info:
+  title: ''
+  version: 0.0.0
+paths:
+  /api/ai/budget-advice/:
+    get:
+      operationId: api_ai_budget_advice_retrieve
+      description: |-
+        GET /api/ai/budget-advice/
+        Returns AI-generated budget recommendations based on user's actual spending vs 50/30/20 rule.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/chat/:
+    post:
+      operationId: api_ai_chat_create
+      description: |-
+        POST /api/ai/chat/
+
+        RAG-powered chat endpoint grounded in the user's uploaded documents.
+
+        Request body:
+            {
+                "question": "How much did I spend on food last month?",
+                "document_id": 5,          // optional — restrict to one document
+                "session_id": null         // optional — continue an existing chat session
+            }
+
+        Response:
+            {
+                "answer": "...",
+                "sources": [{"document_name": "...", "preview": "...", "relevance_score": 0.87}],
+                "session_id": 12
+            }
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/chat-sessions/:
+    get:
+      operationId: api_ai_chat_sessions_list
+      description: |-
+        GET /api/socket/chat-sessions/
+        List user's chat sessions (paginated).
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedChatSessionList'
+          description: ''
+  /api/ai/chat-sessions/{session_id}/messages/:
+    get:
+      operationId: api_ai_chat_sessions_messages_list
+      description: |-
+        GET /api/ai/chat-sessions/<session_id>/messages/
+        Cursor-paginated messages within a session (50 per page, newest-first).
+        Use the returned `cursor` token in subsequent requests for infinite-scroll.
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - in: path
+        name: session_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedChatMessageList'
+          description: ''
+  /api/ai/chat/history/:
+    get:
+      operationId: api_ai_chat_history_retrieve
+      description: |-
+        GET /api/ai/chat/history/
+        Returns the message history for the user's global ChatSession.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/credit-analysis/:
+    post:
+      operationId: api_ai_credit_analysis_create
+      description: |-
+        POST /api/ai/credit-analysis/
+        Body: { "loans": [...], "score": 750 }
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/daily-briefing/:
+    get:
+      operationId: api_ai_daily_briefing_retrieve
+      description: GET /api/ai/daily-briefing/ -> returns the daily digest.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/document/process/:
+    post:
+      operationId: api_ai_document_process_create
+      description: |-
+        POST /api/ai/document/process/
+        Cost: 5 Credits
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/documents/:
+    get:
+      operationId: api_ai_documents_retrieve
+      description: GET /api/ai/documents/  -> list documents stored in SQL
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/documents/{document_id}/content/:
+    get:
+      operationId: api_ai_documents_content_retrieve
+      description: GET /api/ai/documents/<document_id>/content/ -> return extracted
+        raw text
+      parameters:
+      - in: path
+        name: document_id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/expense-document/{doc_id}/summary/:
+    get:
+      operationId: api_ai_expense_document_summary_retrieve
+      description: GET /api/ai/expense-document/<mongo_doc_id>/summary/
+      parameters:
+      - in: path
+        name: doc_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/expense-document/{mongo_id}/suggestions/:
+    get:
+      operationId: api_ai_expense_document_suggestions_retrieve
+      description: |-
+        GET /api/ai/expense-document/<mongo_id>/suggestions/
+
+        Generate actionable saving suggestions based on spending patterns.
+      parameters:
+      - in: path
+        name: mongo_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/financial-health/breakdown/:
+    get:
+      operationId: api_ai_financial_health_breakdown_retrieve
+      description: |-
+        Get detailed breakdown of the current score
+        Returns factor details with metrics and explanations
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/financial-health/history/:
+    get:
+      operationId: api_ai_financial_health_history_retrieve
+      description: |-
+        Get the user's financial health score history
+        Returns scores for the last 12 months
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/financial-health/recalculate/:
+    post:
+      operationId: api_ai_financial_health_recalculate_create
+      description: |-
+        Force recalculation of the financial health score
+        Optionally for a specific month
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/financial-health/recommendations/:
+    get:
+      operationId: api_ai_financial_health_recommendations_retrieve
+      description: Get personalized recommendations based on the current score
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/financial-health/score/:
+    get:
+      operationId: api_ai_financial_health_score_retrieve
+      description: |-
+        Get the user's current financial health score
+        Returns the most recent score or calculates a new one if none exists
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/goal-investment/:
+    post:
+      operationId: api_ai_goal_investment_create
+      description: POST /api/ai/goal-investment/ -> deterministic SIP and goal roadmap
+        planner.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/goal-plan/:
+    get:
+      operationId: api_ai_goal_plan_retrieve
+      description: |-
+        GET /api/ai/goal-plan/
+        Returns AI-powered comprehensive goal planning analysis.
+        Optional ?refresh=true to force re-analyze (costs 15 credits + throttled to 10/hour).
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/goal-plan/simulate/:
+    post:
+      operationId: api_ai_goal_plan_simulate_create
+      description: |-
+        POST /api/ai/goal-plan/simulate/
+        Body: { "change_pct": -20 }
+        Simulates income change impact on all goals.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/goal-planner/:
+    get:
+      operationId: api_ai_goal_planner_retrieve
+      description: |-
+        GET /api/ai/goal-plan/
+        Returns AI-powered comprehensive goal planning analysis.
+        Optional ?refresh=true to force re-analyze (costs 15 credits + throttled to 10/hour).
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/intelligence/:
+    post:
+      operationId: api_ai_intelligence_create
+      description: POST /api/ai/intelligence/ — intent detection + tool routing +
+        structured JSON output.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/knowledge/search/:
+    get:
+      operationId: api_ai_knowledge_search_retrieve
+      description: GET /api/ai/knowledge/search/ -> verified educational knowledge
+        search.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/loans/:
+    get:
+      operationId: api_ai_loans_list
+      description: |-
+        GET /api/ai/loans/ -> List user loans
+        POST /api/ai/loans/ -> Create new loan
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLoanList'
+          description: ''
+    post:
+      operationId: api_ai_loans_create
+      description: |-
+        GET /api/ai/loans/ -> List user loans
+        POST /api/ai/loans/ -> Create new loan
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Loan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Loan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Loan'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Loan'
+          description: ''
+  /api/ai/money-replay/:
+    get:
+      operationId: api_ai_money_replay_retrieve
+      description: GET /api/ai/money-replay/ -> month-end story slides.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          description: No response body
+  /api/ai/simulate/:
+    post:
+      operationId: api_ai_simulate_create
+      description: |-
+        POST /api/ai/simulate/
+        Body: { "scenario": "loan", "amount": 50000 }
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SimulationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimulationResponse'
+          description: ''
+  /api/ai/spending-analysis/:
+    get:
+      operationId: api_ai_spending_analysis_retrieve
+      description: |-
+        GET /api/ai/spending-analysis/
+
+        Returns the latest AI spending analysis.
+        If no recent analysis (last 24h) exists, it triggers a new one.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpendingAnalysisResponse'
+          description: ''
+  /api/ai/subscription-hunter/:
+    get:
+      operationId: api_ai_subscription_hunter_retrieve
+      description: GET /api/ai/subscription-hunter/ -> detect recurring and inactive
+        subscriptions.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionHunterResponse'
+          description: ''
+  /api/ai/tools/:
+    post:
+      operationId: api_ai_tools_create
+      description: POST /api/ai/tools/ -> direct access to backend financial calculations.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancialToolRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FinancialToolRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FinancialToolRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialToolResponse'
+          description: ''
+  /api/gamification/badges/:
+    get:
+      operationId: api_gamification_badges_list
+      description: GET /api/gamification/badges/ — all badge definitions.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedBadgeList'
+          description: ''
+  /api/gamification/challenges/:
+    get:
+      operationId: api_gamification_challenges_list
+      description: GET /api/gamification/challenges/ — all active global challenges.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedChallengeList'
+          description: ''
+  /api/gamification/my-badges/:
+    get:
+      operationId: api_gamification_my_badges_list
+      description: |-
+        GET /api/gamification/my-badges/
+        Returns the user's earned badges.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserBadgeList'
+          description: ''
+  /api/gamification/my-challenges/:
+    get:
+      operationId: api_gamification_my_challenges_list
+      description: |-
+        GET /api/gamification/my-challenges/
+        Returns the authenticated user's challenges.
+        Auto-seeds any missing challenges so new users get all of them.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserChallengeList'
+          description: ''
+  /api/gamification/my-challenges/{id}/toggle/:
+    post:
+      operationId: api_gamification_my_challenges_toggle_create
+      description: |-
+        POST /api/gamification/my-challenges/<id>/toggle/
+        Toggle completion of a user challenge. Adjusts streak.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserChallenge'
+          description: ''
+  /api/gamification/summary/:
+    get:
+      operationId: api_gamification_summary_retrieve
+      description: |-
+        GET /api/gamification/summary/
+        Combined overview: challenges stats, badges, streaks.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GamificationSummary'
+          description: ''
+  /api/goals/:
+    get:
+      operationId: api_goals_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGoalList'
+          description: ''
+    post:
+      operationId: api_goals_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Goal'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Goal'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Goal'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: ''
+  /api/goals/{id}/:
+    get:
+      operationId: api_goals_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: ''
+    put:
+      operationId: api_goals_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Goal'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Goal'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Goal'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: ''
+    patch:
+      operationId: api_goals_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGoal'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedGoal'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedGoal'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Goal'
+          description: ''
+    delete:
+      operationId: api_goals_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/reports/:
+    get:
+      operationId: api_reports_list
+      description: |-
+        GET /api/reports/ -> List user's financial reports.
+        POST /api/reports/ -> Generate a new financial report.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFinancialReportList'
+          description: ''
+    post:
+      operationId: api_reports_create
+      description: |-
+        GET /api/reports/ -> List user's financial reports.
+        POST /api/reports/ -> Generate a new financial report.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinancialReport'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FinancialReport'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FinancialReport'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinancialReport'
+          description: ''
+  /api/reports/money-replay/:
+    get:
+      operationId: api_reports_money_replay_retrieve
+      description: GET /api/reports/money-replay/ -> generate the shareable month-end
+        story.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MoneyReplayResponse'
+          description: ''
+  /api/schema/:
+    get:
+      operationId: api_schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/transactions/:
+    get:
+      operationId: api_transactions_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTransactionList'
+          description: ''
+    post:
+      operationId: api_transactions_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+          description: ''
+  /api/transactions/bulk/:
+    post:
+      operationId: api_transactions_bulk_create
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Transaction'
+          application/x-www-form-urlencoded:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Transaction'
+          multipart/form-data:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Transaction'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkCreateResponse'
+          description: ''
+  /api/transactions/summary/:
+    get:
+      operationId: api_transactions_summary_retrieve
+      description: Return aggregated income/expense totals + per-category breakdown
+        for current month.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionSummaryResponse'
+          description: ''
+  /api/users/change-password/:
+    post:
+      operationId: api_users_change_password_create
+      description: |-
+        POST /api/users/change-password/
+        Change password for authenticated user.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePassword'
+          description: ''
+  /api/users/export-data/:
+    post:
+      operationId: api_users_export_data_create
+      description: |-
+        POST /api/users/export-data/
+        Generate a JSON export of all user data.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportDataResponse'
+          description: ''
+  /api/users/forgot-password/:
+    post:
+      operationId: api_users_forgot_password_create
+      description: |-
+        Handle forgot password request.
+
+        Args:
+            request: HTTP request with email
+
+        Returns:
+            Response: Success message on email sent
+            Response: Error message on failure
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPassword'
+          description: ''
+  /api/users/login/:
+    post:
+      operationId: api_users_login_create
+      description: |-
+        Handle login request and generate JWT tokens.
+
+        Args:
+            request: HTTP request with email and password
+
+        Returns:
+            Response: JWT tokens and user information on success
+            Response: Error message on failure
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLogin'
+          description: ''
+  /api/users/me/:
+    get:
+      operationId: api_users_me_retrieve
+      description: |-
+        API endpoint for retrieving authenticated user profile.
+
+        GET /users/me
+
+        Returns the currently authenticated user's profile information.
+        Requires valid JWT access token in Authorization header.
+
+        Headers:
+            Authorization: Bearer <access_token>
+
+        Response (200 OK):
+            {
+                "id": 1,
+                "email": "user@example.com",
+                "username": "string",
+                "is_active": true,
+                "date_joined": "2025-11-27T10:00:00Z"
+            }
+
+        Raises:
+            401 Unauthorized: If no valid token is provided
+            401 Unauthorized: If token is expired or invalid
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /api/users/notifications/:
+    get:
+      operationId: api_users_notifications_list
+      description: |-
+        API endpoint to list user notifications.
+        GET /users/notifications/
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /api/users/notifications/{id}/delete/:
+    delete:
+      operationId: api_users_notifications_delete_destroy
+      description: |-
+        API endpoint to delete a notification.
+        DELETE /users/notifications/<id>/
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/users/notifications/{id}/read/:
+    post:
+      operationId: api_users_notifications_read_create
+      description: |-
+        API endpoint to mark a notification as read.
+        POST /users/notifications/<id>/read/
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkReadRes'
+          description: ''
+  /api/users/notifications/mark-all-read/:
+    post:
+      operationId: api_users_notifications_mark_all_read_create
+      description: |-
+        API endpoint to mark all notifications as read.
+        POST /users/notifications/mark-all-read/
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkAllReadRes'
+          description: ''
+  /api/users/onboarding/:
+    post:
+      operationId: api_users_onboarding_create
+      description: |-
+        API endpoint for new user onboarding.
+        POST /users/onboarding/
+
+        Saves salary (income), name, and initial spending entries as transactions.
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Onboarding'
+          description: ''
+  /api/users/profile/full/:
+    get:
+      operationId: api_users_profile_full_retrieve
+      description: |-
+        GET /api/users/profile/full/
+        Full profile + settings + financial summary for the settings page.
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileFull'
+          description: ''
+  /api/users/profile/update/:
+    put:
+      operationId: api_users_profile_update_update
+      description: |-
+        API endpoint for updating user profile.
+
+        PUT /auth/profile/update
+
+        Updates first_name, last_name, and income for authenticated user.
+        Requires valid JWT access token.
+
+        Request body:
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "income": "50000.00"
+            }
+
+        Response (200 OK):
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "income": "50000.00"
+            }
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileUpdate'
+          description: ''
+    patch:
+      operationId: api_users_profile_update_partial_update
+      description: |-
+        API endpoint for updating user profile.
+
+        PUT /auth/profile/update
+
+        Updates first_name, last_name, and income for authenticated user.
+        Requires valid JWT access token.
+
+        Request body:
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "income": "50000.00"
+            }
+
+        Response (200 OK):
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "income": "50000.00"
+            }
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileUpdate'
+          description: ''
+  /api/users/purchase-credits/:
+    post:
+      operationId: api_users_purchase_credits_create
+      description: |-
+        API endpoint for purchasing AI credits.
+        POST /auth/purchase-credits/
+
+        Adds credits to the user's account and persists to DB.
+
+        Request body:
+            { "plan_id": "starter" | "pro" | "elite" }
+
+        Response (200 OK):
+            { "success": true, "plan": "pro", "credits_added": 200000, "total_credits": 299838 }
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseReq'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PurchaseReq'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PurchaseReq'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseRes'
+          description: ''
+  /api/users/refresh/:
+    post:
+      operationId: api_users_refresh_create
+      description: |-
+        API endpoint for refreshing JWT access token.
+
+        POST /auth/refresh
+
+        Generates a new access token using a valid refresh token.
+
+        Request body:
+            {
+                "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+            }
+
+        Response (200 OK):
+            {
+                "access": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+            }
+
+        Raises:
+            400 Bad Request: If refresh token is missing
+            401 Unauthorized: If refresh token is invalid or expired
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+          description: ''
+  /api/users/register/:
+    post:
+      operationId: api_users_register_create
+      description: |-
+        API endpoint for user registration.
+        POST /auth/register
+        Creates a new user account with email and password validation.
+        Throttle: 20 requests/hour per IP (brute-force protection).
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegister'
+          description: ''
+  /api/users/reset-password/:
+    post:
+      operationId: api_users_reset_password_create
+      description: |-
+        Handle password reset request.
+
+        Args:
+            request: HTTP request with token and new password
+
+        Returns:
+            Response: Success message on password reset
+            Response: Error message on failure
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPassword'
+          description: ''
+  /api/users/send-verification-email/:
+    post:
+      operationId: api_users_send_verification_email_create
+      description: |-
+        Handle resend verification email request.
+
+        Args:
+            request: HTTP request with email
+
+        Returns:
+            Response: Success message on email sent
+            Response: Error message on failure
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendVerificationEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SendVerificationEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendVerificationEmail'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendVerificationEmail'
+          description: ''
+  /api/users/settings/:
+    get:
+      operationId: api_users_settings_retrieve
+      description: |-
+        GET  /api/users/settings/ — retrieve user preferences
+        PUT  /api/users/settings/ — update user preferences
+        PATCH /api/users/settings/ — partial update
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+          description: ''
+    put:
+      operationId: api_users_settings_update
+      description: |-
+        GET  /api/users/settings/ — retrieve user preferences
+        PUT  /api/users/settings/ — update user preferences
+        PATCH /api/users/settings/ — partial update
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+          description: ''
+    patch:
+      operationId: api_users_settings_partial_update
+      description: |-
+        GET  /api/users/settings/ — retrieve user preferences
+        PUT  /api/users/settings/ — update user preferences
+        PATCH /api/users/settings/ — partial update
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserSettings'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserSettings'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserSettings'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+          description: ''
+  /api/users/verify-email/:
+    post:
+      operationId: api_users_verify_email_create
+      description: |-
+        Handle email verification request.
+
+        Args:
+            request: HTTP request with verification token
+
+        Returns:
+            Response: Success message on verification
+            Response: Error message on failure
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerification'
+          description: ''
+  /auth/change-password/:
+    post:
+      operationId: auth_change_password_create
+      description: |-
+        POST /api/users/change-password/
+        Change password for authenticated user.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePassword'
+          description: ''
+  /auth/export-data/:
+    post:
+      operationId: auth_export_data_create
+      description: |-
+        POST /api/users/export-data/
+        Generate a JSON export of all user data.
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportDataResponse'
+          description: ''
+  /auth/forgot-password/:
+    post:
+      operationId: auth_forgot_password_create
+      description: |-
+        Handle forgot password request.
+
+        Args:
+            request: HTTP request with email
+
+        Returns:
+            Response: Success message on email sent
+            Response: Error message on failure
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPassword'
+          description: ''
+  /auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        Handle login request and generate JWT tokens.
+
+        Args:
+            request: HTTP request with email and password
+
+        Returns:
+            Response: JWT tokens and user information on success
+            Response: Error message on failure
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLogin'
+          description: ''
+  /auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      description: |-
+        API endpoint for retrieving authenticated user profile.
+
+        GET /users/me
+
+        Returns the currently authenticated user's profile information.
+        Requires valid JWT access token in Authorization header.
+
+        Headers:
+            Authorization: Bearer <access_token>
+
+        Response (200 OK):
+            {
+                "id": 1,
+                "email": "user@example.com",
+                "username": "string",
+                "is_active": true,
+                "date_joined": "2025-11-27T10:00:00Z"
+            }
+
+        Raises:
+            401 Unauthorized: If no valid token is provided
+            401 Unauthorized: If token is expired or invalid
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /auth/notifications/:
+    get:
+      operationId: auth_notifications_list
+      description: |-
+        API endpoint to list user notifications.
+        GET /users/notifications/
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNotificationList'
+          description: ''
+  /auth/notifications/{id}/delete/:
+    delete:
+      operationId: auth_notifications_delete_destroy
+      description: |-
+        API endpoint to delete a notification.
+        DELETE /users/notifications/<id>/
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /auth/notifications/{id}/read/:
+    post:
+      operationId: auth_notifications_read_create
+      description: |-
+        API endpoint to mark a notification as read.
+        POST /users/notifications/<id>/read/
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkReadRes'
+          description: ''
+  /auth/notifications/mark-all-read/:
+    post:
+      operationId: auth_notifications_mark_all_read_create
+      description: |-
+        API endpoint to mark all notifications as read.
+        POST /users/notifications/mark-all-read/
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkAllReadRes'
+          description: ''
+  /auth/onboarding/:
+    post:
+      operationId: auth_onboarding_create
+      description: |-
+        API endpoint for new user onboarding.
+        POST /users/onboarding/
+
+        Saves salary (income), name, and initial spending entries as transactions.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Onboarding'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Onboarding'
+          description: ''
+  /auth/profile/full/:
+    get:
+      operationId: auth_profile_full_retrieve
+      description: |-
+        GET /api/users/profile/full/
+        Full profile + settings + financial summary for the settings page.
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileFull'
+          description: ''
+  /auth/profile/update/:
+    put:
+      operationId: auth_profile_update_update
+      description: |-
+        API endpoint for updating user profile.
+
+        PUT /auth/profile/update
+
+        Updates first_name, last_name, and income for authenticated user.
+        Requires valid JWT access token.
+
+        Request body:
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "income": "50000.00"
+            }
+
+        Response (200 OK):
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "income": "50000.00"
+            }
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileUpdate'
+          description: ''
+    patch:
+      operationId: auth_profile_update_partial_update
+      description: |-
+        API endpoint for updating user profile.
+
+        PUT /auth/profile/update
+
+        Updates first_name, last_name, and income for authenticated user.
+        Requires valid JWT access token.
+
+        Request body:
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "income": "50000.00"
+            }
+
+        Response (200 OK):
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "income": "50000.00"
+            }
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileUpdate'
+          description: ''
+  /auth/purchase-credits/:
+    post:
+      operationId: auth_purchase_credits_create
+      description: |-
+        API endpoint for purchasing AI credits.
+        POST /auth/purchase-credits/
+
+        Adds credits to the user's account and persists to DB.
+
+        Request body:
+            { "plan_id": "starter" | "pro" | "elite" }
+
+        Response (200 OK):
+            { "success": true, "plan": "pro", "credits_added": 200000, "total_credits": 299838 }
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PurchaseReq'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PurchaseReq'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PurchaseReq'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PurchaseRes'
+          description: ''
+  /auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: |-
+        API endpoint for refreshing JWT access token.
+
+        POST /auth/refresh
+
+        Generates a new access token using a valid refresh token.
+
+        Request body:
+            {
+                "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+            }
+
+        Response (200 OK):
+            {
+                "access": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+            }
+
+        Raises:
+            400 Bad Request: If refresh token is missing
+            401 Unauthorized: If refresh token is invalid or expired
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+          description: ''
+  /auth/register/:
+    post:
+      operationId: auth_register_create
+      description: |-
+        API endpoint for user registration.
+        POST /auth/register
+        Creates a new user account with email and password validation.
+        Throttle: 20 requests/hour per IP (brute-force protection).
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegister'
+          description: ''
+  /auth/reset-password/:
+    post:
+      operationId: auth_reset_password_create
+      description: |-
+        Handle password reset request.
+
+        Args:
+            request: HTTP request with token and new password
+
+        Returns:
+            Response: Success message on password reset
+            Response: Error message on failure
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPassword'
+          description: ''
+  /auth/send-verification-email/:
+    post:
+      operationId: auth_send_verification_email_create
+      description: |-
+        Handle resend verification email request.
+
+        Args:
+            request: HTTP request with email
+
+        Returns:
+            Response: Success message on email sent
+            Response: Error message on failure
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendVerificationEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SendVerificationEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SendVerificationEmail'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendVerificationEmail'
+          description: ''
+  /auth/settings/:
+    get:
+      operationId: auth_settings_retrieve
+      description: |-
+        GET  /api/users/settings/ — retrieve user preferences
+        PUT  /api/users/settings/ — update user preferences
+        PATCH /api/users/settings/ — partial update
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+          description: ''
+    put:
+      operationId: auth_settings_update
+      description: |-
+        GET  /api/users/settings/ — retrieve user preferences
+        PUT  /api/users/settings/ — update user preferences
+        PATCH /api/users/settings/ — partial update
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserSettings'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+          description: ''
+    patch:
+      operationId: auth_settings_partial_update
+      description: |-
+        GET  /api/users/settings/ — retrieve user preferences
+        PUT  /api/users/settings/ — update user preferences
+        PATCH /api/users/settings/ — partial update
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserSettings'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserSettings'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserSettings'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSettings'
+          description: ''
+  /auth/verify-email/:
+    post:
+      operationId: auth_verify_email_create
+      description: |-
+        Handle email verification request.
+
+        Args:
+            request: HTTP request with verification token
+
+        Returns:
+            Response: Success message on verification
+            Response: Error message on failure
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmailVerification'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmailVerification'
+          description: ''
+components:
+  schemas:
+    Badge:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        icon:
+          type: string
+          maxLength: 50
+        rarity:
+          $ref: '#/components/schemas/RarityEnum'
+        threshold_score:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+          description: Min health score to earn this badge
+      required:
+      - id
+      - name
+    BulkCreateResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+      - message
+    CategoryEnum:
+      enum:
+      - Tracking
+      - Savings
+      - Optimization
+      - Planning
+      - Investing
+      type: string
+      description: |-
+        * `Tracking` - Tracking
+        * `Savings` - Savings
+        * `Optimization` - Optimization
+        * `Planning` - Planning
+        * `Investing` - Investing
+    Challenge:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        points:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        icon:
+          type: string
+          maxLength: 50
+        is_active:
+          type: boolean
+      required:
+      - description
+      - id
+      - title
+    ChangePassword:
+      type: object
+      description: Serializer for authenticated password change.
+      properties:
+        old_password:
+          type: string
+          writeOnly: true
+        new_password:
+          type: string
+          writeOnly: true
+        new_password_confirm:
+          type: string
+          writeOnly: true
+      required:
+      - new_password
+      - new_password_confirm
+      - old_password
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        session:
+          type: integer
+        sender:
+          $ref: '#/components/schemas/SenderEnum'
+        text:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - sender
+      - session
+      - text
+    ChatSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        mongo_id:
+          type: string
+          nullable: true
+          maxLength: 64
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+    CurrencyEnum:
+      enum:
+      - INR
+      - USD
+      - EUR
+      - GBP
+      type: string
+      description: |-
+        * `INR` - Indian Rupee
+        * `USD` - US Dollar
+        * `EUR` - Euro
+        * `GBP` - British Pound
+    EmailVerification:
+      type: object
+      description: |-
+        Serializer for verifying email with token.
+
+        Features:
+        - Validates email verification token
+        - Marks email as verified
+      properties:
+        token:
+          type: string
+      required:
+      - token
+    ExportDataResponse:
+      type: object
+      properties:
+        profile:
+          type: object
+          additionalProperties: {}
+        settings:
+          type: object
+          additionalProperties: {}
+        transactions:
+          type: array
+          items: {}
+        notifications:
+          type: array
+          items: {}
+      required:
+      - notifications
+      - profile
+      - settings
+      - transactions
+    FinancialReport:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        report_type:
+          $ref: '#/components/schemas/ReportTypeEnum'
+        data:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - data
+      - id
+      - title
+    FinancialToolRequest:
+      type: object
+      properties:
+        tool:
+          type: string
+        question:
+          type: string
+      required:
+      - tool
+    FinancialToolResponse:
+      type: object
+      properties:
+        insight:
+          type: string
+        tool:
+          type: string
+        data:
+          type: object
+          additionalProperties: {}
+      required:
+      - data
+      - insight
+      - tool
+    ForgotPassword:
+      type: object
+      description: |-
+        Serializer for initiating password reset process.
+
+        Features:
+        - Email-based password reset
+        - Generates reset token
+        - Sends email with reset link
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    GamificationSummary:
+      type: object
+      properties:
+        challenges:
+          type: object
+          additionalProperties: {}
+        badges:
+          type: object
+          additionalProperties: {}
+      required:
+      - badges
+      - challenges
+    Goal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        target_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        current_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        deadline:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        monthly_contribution:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        icon:
+          type: string
+          maxLength: 10
+        progress_percentage:
+          type: number
+          format: double
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        remaining_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        months_left:
+          type: integer
+          readOnly: true
+        required_monthly:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        delay_months:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - delay_months
+      - id
+      - months_left
+      - progress_percentage
+      - remaining_amount
+      - required_monthly
+      - status
+      - target_amount
+    LanguageEnum:
+      enum:
+      - en
+      - hi
+      - ta
+      type: string
+      description: |-
+        * `en` - English
+        * `hi` - Hindi
+        * `ta` - Tamil
+    Loan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          description: e.g. HDFC Home Loan
+          maxLength: 255
+        loan_type:
+          type: string
+          maxLength: 100
+        principal_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        monthly_emi:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        interest_rate:
+          type: number
+          format: double
+          nullable: true
+        tenure_months:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        emis_paid:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        missed_emis:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+      required:
+      - id
+      - monthly_emi
+      - name
+      - principal_amount
+      - status
+      - tenure_months
+    MarkAllReadRes:
+      type: object
+      properties:
+        status:
+          type: string
+        marked:
+          type: integer
+      required:
+      - marked
+      - status
+    MarkReadRes:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+      - status
+    MoneyReplayResponse:
+      type: object
+      properties:
+        report_id:
+          type: integer
+        title:
+          type: string
+        slides:
+          type: array
+          items: {}
+      required:
+      - report_id
+      - slides
+      - title
+    Notification:
+      type: object
+      description: Serializer for user notifications.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 255
+        message:
+          type: string
+        notification_type:
+          $ref: '#/components/schemas/NotificationTypeEnum'
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        link:
+          type: string
+          nullable: true
+          description: Optional link to redirect
+          maxLength: 500
+      required:
+      - created_at
+      - id
+      - message
+      - title
+    NotificationTypeEnum:
+      enum:
+      - info
+      - success
+      - warning
+      - goal
+      - transaction
+      - funds
+      - system
+      type: string
+      description: |-
+        * `info` - Info
+        * `success` - Success
+        * `warning` - Warning
+        * `goal` - Goal
+        * `transaction` - Transaction
+        * `funds` - Funds
+        * `system` - System
+    Onboarding:
+      type: object
+      description: |-
+        Serializer for new user onboarding.
+        Captures salary and initial spending information.
+      properties:
+        first_name:
+          type: string
+          maxLength: 30
+        last_name:
+          type: string
+          maxLength: 30
+        monthly_income:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        spending:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          description: List of {category, amount, description} dicts
+      required:
+      - first_name
+      - monthly_income
+    PaginatedBadgeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Badge'
+    PaginatedChallengeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Challenge'
+    PaginatedChatMessageList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+    PaginatedChatSessionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatSession'
+    PaginatedFinancialReportList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/FinancialReport'
+    PaginatedGoalList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Goal'
+    PaginatedLoanList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Loan'
+    PaginatedNotificationList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+    PaginatedTransactionList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+    PaginatedUserBadgeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserBadge'
+    PaginatedUserChallengeList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        total_pages:
+          type: integer
+          example: 7
+        current_page:
+          type: integer
+          example: 1
+        next:
+          type: string
+          nullable: true
+          format: uri
+        previous:
+          type: string
+          nullable: true
+          format: uri
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserChallenge'
+    PatchedGoal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        target_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        current_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        deadline:
+          type: string
+          format: date
+          nullable: true
+        priority:
+          $ref: '#/components/schemas/PriorityEnum'
+        monthly_contribution:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        icon:
+          type: string
+          maxLength: 10
+        progress_percentage:
+          type: number
+          format: double
+          readOnly: true
+        status:
+          type: string
+          readOnly: true
+        remaining_amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        months_left:
+          type: integer
+          readOnly: true
+        required_monthly:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        delay_months:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedUserProfileUpdate:
+      type: object
+      description: |-
+        Serializer for updating user profile information.
+
+        Features:
+        - Update first_name, last_name, and income
+        - Email and username are read-only
+        - Comprehensive validation
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        income:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        occupation:
+          type: string
+          maxLength: 120
+        city:
+          type: string
+          maxLength: 120
+        financial_goals:
+          type: string
+    PatchedUserSettings:
+      type: object
+      description: Serializer for user preferences (notifications, privacy, appearance).
+      properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+        dark_mode:
+          type: boolean
+        budget_alerts:
+          type: boolean
+        goal_reminders:
+          type: boolean
+        weekly_report:
+          type: boolean
+        ai_insights:
+          type: boolean
+        market_updates:
+          type: boolean
+        show_balance:
+          type: boolean
+        analytics_sharing:
+          type: boolean
+        crash_reports:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PriorityEnum:
+      enum:
+      - high
+      - medium
+      - low
+      type: string
+      description: |-
+        * `high` - High
+        * `medium` - Medium
+        * `low` - Low
+    PurchaseReq:
+      type: object
+      properties:
+        plan_id:
+          type: string
+      required:
+      - plan_id
+    PurchaseRes:
+      type: object
+      properties:
+        success:
+          type: boolean
+        plan:
+          type: string
+        credits_added:
+          type: integer
+        total_credits:
+          type: integer
+      required:
+      - credits_added
+      - plan
+      - success
+      - total_credits
+    RarityEnum:
+      enum:
+      - common
+      - uncommon
+      - rare
+      - epic
+      type: string
+      description: |-
+        * `common` - Common
+        * `uncommon` - Uncommon
+        * `rare` - Rare
+        * `epic` - Epic
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refresh:
+          type: string
+      required:
+      - refresh
+    RefreshTokenResponse:
+      type: object
+      properties:
+        access:
+          type: string
+      required:
+      - access
+    ReportTypeEnum:
+      enum:
+      - monthly
+      - money_replay
+      - weekly
+      - custom
+      type: string
+      description: |-
+        * `monthly` - Monthly Summary
+        * `money_replay` - Money Replay Story
+        * `weekly` - Weekly Summary
+        * `custom` - Custom Range
+    ResetPassword:
+      type: object
+      description: |-
+        Serializer for resetting password with token.
+
+        Features:
+        - Validates reset token
+        - Checks token expiration
+        - Updates password with strength validation
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+          writeOnly: true
+        password_confirm:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - password_confirm
+      - token
+    SendVerificationEmail:
+      type: object
+      description: |-
+        Serializer for sending verification email.
+
+        Features:
+        - Sends email verification link
+        - Generates new token if needed
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    SenderEnum:
+      enum:
+      - user
+      - ai
+      type: string
+      description: |-
+        * `user` - user
+        * `ai` - ai
+    SimulationRequest:
+      type: object
+      properties:
+        scenario:
+          type: string
+        amount:
+          type: number
+          format: double
+        current_score:
+          type: integer
+        details:
+          type: object
+          additionalProperties: {}
+      required:
+      - amount
+      - scenario
+    SimulationResponse:
+      type: object
+      properties:
+        insight:
+          type: string
+        recommendation:
+          type: string
+        data:
+          type: object
+          additionalProperties: {}
+      required:
+      - data
+      - insight
+      - recommendation
+    SourceEnum:
+      enum:
+      - manual
+      - pdf
+      type: string
+      description: |-
+        * `manual` - Manual
+        * `pdf` - PDF Upload
+    SpendingAnalysisResponse:
+      type: object
+      properties:
+        analysis_data:
+          type: object
+          additionalProperties: {}
+      required:
+      - analysis_data
+    StatusEnum:
+      enum:
+      - ACTIVE
+      - CLOSED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `CLOSED` - Closed
+    SubscriptionHunterResponse:
+      type: object
+      properties:
+        insight:
+          type: string
+        recommendation:
+          type: string
+        tool:
+          type: string
+        data:
+          type: object
+          additionalProperties: {}
+      required:
+      - data
+      - insight
+      - recommendation
+      - tool
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        category:
+          type: string
+          maxLength: 50
+        description:
+          type: string
+        date:
+          type: string
+          format: date-time
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        source_document:
+          type: string
+          maxLength: 512
+        user:
+          type: integer
+          readOnly: true
+      required:
+      - amount
+      - category
+      - id
+      - type
+      - user
+    TransactionSummaryResponse:
+      type: object
+      properties:
+        month:
+          type: string
+        profile_income:
+          type: number
+          format: double
+        transaction_income:
+          type: number
+          format: double
+        total_income:
+          type: number
+          format: double
+        total_expense:
+          type: number
+          format: double
+        savings:
+          type: number
+          format: double
+        all_time_savings:
+          type: number
+          format: double
+        categories:
+          type: array
+          items: {}
+      required:
+      - all_time_savings
+      - categories
+      - month
+      - profile_income
+      - savings
+      - total_expense
+      - total_income
+      - transaction_income
+    TypeEnum:
+      enum:
+      - income
+      - expense
+      type: string
+      description: |-
+        * `income` - Income
+        * `expense` - Expense
+    UserBadge:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        badge_id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        icon:
+          type: string
+          readOnly: true
+        rarity:
+          type: string
+          readOnly: true
+        threshold_score:
+          type: integer
+          readOnly: true
+        earned_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - badge_id
+      - description
+      - earned_at
+      - icon
+      - id
+      - name
+      - rarity
+      - threshold_score
+    UserChallenge:
+      type: object
+      description: Flat serializer that merges Challenge fields into the response.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        challenge_id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        points:
+          type: integer
+          readOnly: true
+        category:
+          type: string
+          readOnly: true
+        icon:
+          type: string
+          readOnly: true
+        completed:
+          type: boolean
+        streak:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: -9223372036854775808
+          format: int64
+        completed_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        last_toggled:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - category
+      - challenge_id
+      - completed_at
+      - created_at
+      - description
+      - icon
+      - id
+      - last_toggled
+      - points
+      - title
+    UserLogin:
+      type: object
+      description: |-
+        Production-ready serializer for user login.
+
+        Validates credentials against the database and returns the user object
+        if authentication is successful.
+
+        Features:
+        - Email-based authentication
+        - Secure password comparison using Django's check_password
+        - User active status validation
+        - Clear error messages (generic to prevent user enumeration)
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    UserProfile:
+      type: object
+      description: |-
+        Production-ready serializer for user profile information.
+
+        Used in protected endpoints to return authenticated user details.
+        All sensitive fields are read-only to prevent unauthorized modification.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        occupation:
+          type: string
+          maxLength: 120
+        city:
+          type: string
+          maxLength: 120
+        financial_goals:
+          type: string
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        credits:
+          type: integer
+          readOnly: true
+          description: User AI usage credits
+        income:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        onboarding_completed:
+          type: boolean
+      required:
+      - credits
+      - date_joined
+      - email
+      - id
+      - income
+      - is_active
+      - username
+    UserProfileFull:
+      type: object
+      description: Full user profile with summary stats for the settings page.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        username:
+          type: string
+          readOnly: true
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        age:
+          type: integer
+          readOnly: true
+          nullable: true
+        occupation:
+          type: string
+          readOnly: true
+        city:
+          type: string
+          readOnly: true
+        financial_goals:
+          type: string
+          readOnly: true
+        income:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        credits:
+          type: integer
+          readOnly: true
+          description: User AI usage credits
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+        onboarding_completed:
+          type: boolean
+          readOnly: true
+        email_verified:
+          type: boolean
+          readOnly: true
+        settings:
+          allOf:
+          - $ref: '#/components/schemas/UserSettings'
+          readOnly: true
+      required:
+      - age
+      - city
+      - credits
+      - date_joined
+      - email
+      - email_verified
+      - financial_goals
+      - first_name
+      - id
+      - income
+      - is_active
+      - last_name
+      - occupation
+      - onboarding_completed
+      - settings
+      - username
+    UserProfileUpdate:
+      type: object
+      description: |-
+        Serializer for updating user profile information.
+
+        Features:
+        - Update first_name, last_name, and income
+        - Email and username are read-only
+        - Comprehensive validation
+      properties:
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        income:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        age:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+          nullable: true
+        occupation:
+          type: string
+          maxLength: 120
+        city:
+          type: string
+          maxLength: 120
+        financial_goals:
+          type: string
+    UserRegister:
+      type: object
+      description: |-
+        Production-ready serializer for user registration.
+
+        Features:
+        - Email uniqueness validation
+        - Password strength validation using Django's validators
+        - Password confirmation matching
+        - Secure password hashing using Django's set_password method
+
+        Raises:
+            ValidationError: If email already exists, passwords don't match,
+                            or password doesn't meet strength requirements
+      properties:
+        full_name:
+          type: string
+          writeOnly: true
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+          description: Password must be at least 8 characters with uppercase, lowercase,
+            and numbers.
+        password_confirm:
+          type: string
+          writeOnly: true
+        age:
+          type: integer
+          nullable: true
+        occupation:
+          type: string
+          nullable: true
+        monthly_income:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          writeOnly: true
+        financial_goals:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+      required:
+      - email
+      - full_name
+      - password
+      - password_confirm
+    UserSettings:
+      type: object
+      description: Serializer for user preferences (notifications, privacy, appearance).
+      properties:
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        language:
+          $ref: '#/components/schemas/LanguageEnum'
+        dark_mode:
+          type: boolean
+        budget_alerts:
+          type: boolean
+        goal_reminders:
+          type: boolean
+        weekly_report:
+          type: boolean
+        ai_insights:
+          type: boolean
+        market_updates:
+          type: boolean
+        show_balance:
+          type: boolean
+        analytics_sharing:
+          type: boolean
+        crash_reports:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - updated_at
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

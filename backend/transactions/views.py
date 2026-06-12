@@ -6,9 +6,19 @@ from decimal import Decimal
 from .models import Transaction
 from .serializers import TransactionSerializer
 
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
+
 class TransactionBulkCreateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        request=TransactionSerializer(many=True),
+        responses=inline_serializer(
+            name="BulkCreateResponse",
+            fields={"message": serializers.CharField()}
+        )
+    )
     def post(self, request):
         data = request.data
         if not isinstance(data, list):
@@ -67,6 +77,21 @@ class TransactionSummaryView(APIView):
     """Return aggregated income/expense totals + per-category breakdown for current month."""
     permission_classes = [permissions.IsAuthenticated]
 
+    @extend_schema(
+        responses=inline_serializer(
+            name="TransactionSummaryResponse",
+            fields={
+                "month": serializers.CharField(),
+                "profile_income": serializers.FloatField(),
+                "transaction_income": serializers.FloatField(),
+                "total_income": serializers.FloatField(),
+                "total_expense": serializers.FloatField(),
+                "savings": serializers.FloatField(),
+                "all_time_savings": serializers.FloatField(),
+                "categories": serializers.ListField(),
+            }
+        )
+    )
     def get(self, request):
         from dateutil.relativedelta import relativedelta
         now = timezone.now()
