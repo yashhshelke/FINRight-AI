@@ -5,7 +5,7 @@ import {
     LayoutDashboard, ListOrdered, Trophy, MessageCircle,
     Settings, LogOut, Bell, ChevronLeft, ChevronRight,
     Menu, Sparkles, X, Plus, AlertCircle, CheckCircle,
-    Info, Clock, TrendingUp, Target, PieChart, Wallet,
+    Info, Clock, TrendingUp, Target, PieChart,
     FileText, Shield, BookOpen, Zap, UploadCloud
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,7 +32,6 @@ const navItems = [
     { to: '/dashboard/coach',        icon: MessageCircle,   label: 'AI Coach'                },
     { to: '/dashboard/spending',     icon: PieChart,        label: 'Spending'                },
     { to: '/dashboard/budget',       icon: Zap,             label: 'Budget'                  },
-    { to: '/dashboard/wallet',       icon: Wallet,          label: 'Wallet'                  },
     { to: '/dashboard/settings',     icon: Settings,        label: 'Settings'                },
 ];
 

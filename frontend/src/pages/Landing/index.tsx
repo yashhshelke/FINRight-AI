@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useInView, AnimatePresence } from 'framer-motion';
 import {
-    TrendingUp, Shield, Zap, Brain, Wallet, Target,
+    TrendingUp, Shield, Zap, Brain,  Target,
     ArrowRight, Check, Star, BarChart3, Lock, Sparkles,
     ChevronRight, Bot, Wifi, CreditCard, Activity,
     FileText, PieChart
@@ -175,7 +175,6 @@ const FEATURES = [
     { icon: Zap, title: '100k Free AI Credits', desc: 'Power chat, document analysis, simulations, and insights from day one.' },
     { icon: Target, title: 'Smart Goals Tracker', desc: 'AI-calculated feasibility and milestone alerts for every goal.' },
     { icon: Shield, title: 'Risk Simulator', desc: 'Stress-test income drops, job loss, or loan scenarios in real time.' },
-    { icon: Wallet, title: 'Digital Wallet', desc: 'Virtual cards, balance management, and full transaction history.' },
 ];
 
 const TESTIMONIALS = [
@@ -241,7 +240,7 @@ export default function Landing() {
                                 className="text-base md:text-lg leading-relaxed mb-8 max-w-xl"
                                 style={{ color: 'rgba(200,190,255,0.65)' }}>
                                 A privacy-first AI coaching platform — with real-time health scoring, smart budgeting, risk simulations,
-                                a digital wallet, and 100,000 free AI credits from day one.
+                                and 100,000 free AI credits from day one.
                             </motion.p>
 
                             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}

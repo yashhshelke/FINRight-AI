@@ -7,7 +7,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import {
     Shield, Zap, Brain, Target, TrendingUp,
     ArrowRight, Check, BarChart3, Lock, Sparkles,
-    ChevronRight, PieChart, Wallet, Bot, FileText,
+    ChevronRight, PieChart,  Bot, FileText,
     Menu, X
 } from 'lucide-react';
 
@@ -279,7 +279,7 @@ export default function Landing() {
                                             style={{ background: C.white, border: `1px solid ${C.border}` }}>
                                             <div className="w-8 h-8 rounded-lg flex items-center justify-center"
                                                 style={{ background: t.inc ? 'rgba(205,250,206,0.5)' : 'rgba(176,91,54,0.1)' }}>
-                                                {t.inc ? <TrendingUp size={13} color={C.teal} /> : <Wallet size={13} color={C.rust} />}
+                                                {t.inc ? <TrendingUp size={13} color={C.teal} /> : <PieChart size={13} color={C.rust} />}
                                             </div>
                                             <div className="flex-1">
                                                 <p className="text-xs font-medium" style={{ color: C.charcoal }}>{t.n}</p>

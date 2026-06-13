@@ -4,10 +4,10 @@ import {
     Plus, Target, Trash2, TrendingUp, TrendingDown, X, Loader2,
     RefreshCw, Lightbulb, AlertTriangle, Activity, Zap, PiggyBank,
     BarChart3, Shield, ChevronDown, ChevronUp, Sparkles, DollarSign,
-    Pencil, CreditCard, Check, Wallet,
+    Pencil, CreditCard, Check,
 } from 'lucide-react';
 import { formatFullCurrency } from '../../lib/calculations';
-import { GoalsAPI } from '../../lib/api';
+import { GoalsAPI, AIAPI } from '../../lib/api';
 import { useTheme } from '../../contexts/ThemeContext';
 
 /* ─── Types ──────────────────────────────────────────── */
@@ -110,6 +110,23 @@ function GoalCard({ goal, ai, onDelete, onUpdate, isDark }: { goal: Goal; ai?: G
     });
     const [editing, setEditing] = useState(false);
 
+    const [showInvest, setShowInvest] = useState(false);
+    const [invLoading, setInvLoading] = useState(false);
+    const [invStrategy, setInvStrategy] = useState<any>(null);
+    const [risk, setRisk] = useState('Moderate');
+
+    async function handleGetInvestment() {
+        setInvLoading(true);
+        try {
+            const data = await AIAPI.getGoalInvestment(goal.id, risk, goal.monthly_contribution);
+            setInvStrategy(data);
+        } catch(e) {
+            console.error(e);
+        } finally {
+            setInvLoading(false);
+        }
+    }
+
     const pStyle = PRIORITY_STYLES[goal.priority] || PRIORITY_STYLES.medium;
     const progressPct = goal.progress_percentage;
     const feasColor = ai ? (ai.feasibility_pct >= 70 ? '#10b981' : ai.feasibility_pct >= 40 ? '#f59e0b' : '#ef4444') : '#a855f7';
@@ -158,7 +175,10 @@ function GoalCard({ goal, ai, onDelete, onUpdate, isDark }: { goal: Goal; ai?: G
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
-                    <button onClick={() => { setShowEdit(e => !e); setShowAddSavings(false); }} className="text-slate-600 hover:text-blue-400 p-1" title="Edit Goal">
+                    <button onClick={() => { setShowInvest(i => !i); setShowEdit(false); setShowAddSavings(false); }} className="text-slate-600 hover:text-green-400 p-1" title="Investment Strategy">
+                        <TrendingUp size={13} />
+                    </button>
+                    <button onClick={() => { setShowEdit(e => !e); setShowAddSavings(false); setShowInvest(false); }} className="text-slate-600 hover:text-blue-400 p-1" title="Edit Goal">
                         <Pencil size={13} />
                     </button>
                     <button onClick={() => setExpanded(e => !e)} className="text-slate-600 hover:text-purple-400 p-1">
@@ -182,7 +202,7 @@ function GoalCard({ goal, ai, onDelete, onUpdate, isDark }: { goal: Goal; ai?: G
                 <div className="flex justify-between items-center mt-1">
                     <button onClick={() => { setShowAddSavings(s => !s); setShowEdit(false); }}
                         className="text-[10px] flex items-center gap-1 px-2 py-0.5 rounded-md transition-all bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20">
-                        <Wallet size={10} /> Add Savings
+                        <CreditCard size={10} /> Add Savings
                     </button>
                     <span className="text-xs font-medium text-purple-400">{progressPct}% complete</span>
                 </div>
@@ -259,6 +279,42 @@ function GoalCard({ goal, ai, onDelete, onUpdate, isDark }: { goal: Goal; ai?: G
                                 className="btn-aqua text-xs px-3 py-1.5 mt-2 flex items-center gap-1">
                                 {editing ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Update Goal
                             </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Investment Strategy Inline */}
+            <AnimatePresence>
+                {showInvest && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                        <div className="mb-3 p-3 rounded-xl" style={{ background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.15)' }}>
+                            <p className="text-[10px] text-green-400 mb-2 font-medium uppercase tracking-wide">Investment Strategy Generator</p>
+                            <div className="flex gap-2 items-center mb-3">
+                                <select className="input-field text-xs flex-1" value={risk} onChange={e => setRisk(e.target.value)}>
+                                    <option value="Conservative">Conservative</option>
+                                    <option value="Moderate">Moderate</option>
+                                    <option value="Aggressive">Aggressive</option>
+                                </select>
+                                <button onClick={handleGetInvestment} disabled={invLoading} className="btn-aqua text-xs px-3 py-1.5 flex items-center gap-1">
+                                    {invLoading ? <Loader2 size={12} className="animate-spin" /> : <TrendingUp size={12} />} Generate
+                                </button>
+                            </div>
+                            
+                            {invStrategy && (
+                                <div className="space-y-2 mt-3 pt-3 border-t border-green-500/20">
+                                    <p className="text-xs font-semibold text-green-400">{invStrategy.insight}</p>
+                                    {invStrategy.data?.portfolio?.map((p: any, i: number) => (
+                                        <div key={i} className="bg-black/20 p-2 rounded flex justify-between items-center text-xs">
+                                            <span style={{ color: 'var(--text-primary)' }}>{p.asset_class}</span>
+                                            <span className="text-green-400 font-bold">{p.allocation_pct}%</span>
+                                        </div>
+                                    ))}
+                                    {invStrategy.data?.expected_return && (
+                                        <p className="text-[10px] text-gray-400 mt-2">Expected Return: <span className="text-gray-200">{invStrategy.data.expected_return}</span></p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 )}

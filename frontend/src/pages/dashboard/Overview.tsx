@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ShoppingCart, Home, Coffee, Car, Zap, TrendingUp, TrendingDown, ChevronRight, Bell, Eye, EyeOff, ArrowUpRight } from 'lucide-react';
+import { ShoppingCart, Home, Coffee, Car, Zap, TrendingUp, TrendingDown, ChevronRight, Bell, Eye, EyeOff, ArrowUpRight, X } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { WalletAPI, HealthAPI, GoalsAPI, TransactionsAPI } from '@/lib/api';
+import { HealthAPI, GoalsAPI, TransactionsAPI, AIAPI } from '@/lib/api';
 
 const Skeleton = ({ w, h, rounded = 8, bg = 'rgba(42,43,47,0.06)' }: any) => (
   <motion.div
@@ -55,36 +55,53 @@ let cachedOverviewData: any = null;
 
 export default function Overview() {
   const [balanceVisible, setBalanceVisible] = useState(true);
-  const [wallet, setWallet] = useState<any>(cachedOverviewData?.wallet || null);
   const [health, setHealth] = useState<any>(cachedOverviewData?.health || null);
   const [goals, setGoals] = useState<any[]>(cachedOverviewData?.goals || []);
   const [transactions, setTransactions] = useState<any[]>(cachedOverviewData?.transactions || []);
   const [summary, setSummary] = useState<any>(cachedOverviewData?.summary || null);
+  const [briefing, setBriefing] = useState<any>(cachedOverviewData?.briefing || null);
   const [loading, setLoading] = useState(!cachedOverviewData);
+
+  const [showReplay, setShowReplay] = useState(false);
+  const [replayData, setReplayData] = useState<any>(null);
+  const [replayLoading, setReplayLoading] = useState(false);
+
+  const openMoneyReplay = async () => {
+    setShowReplay(true);
+    setReplayLoading(true);
+    try {
+      const data = await AIAPI.getMoneyReplay();
+      setReplayData(data);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setReplayLoading(false);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
-      WalletAPI.getWallet().catch(() => null),
       HealthAPI.getScore().catch(() => null),
       GoalsAPI.list().catch(() => ({ results: [] })),
       TransactionsAPI.list(1).catch(() => ({ results: [] })),
       TransactionsAPI.summary().catch(() => null),
-    ]).then(([w, h, g, t, s]) => {
+      AIAPI.getDailyBriefing().catch(() => null),
+    ]).then(([h, g, t, s, b]) => {
       const gList = g?.results?.slice(0, 4) || [];
       const tList = t?.results?.slice(0, 6) || [];
       
-      cachedOverviewData = { wallet: w, health: h, goals: gList, transactions: tList, summary: s };
+      cachedOverviewData = { health: h, goals: gList, transactions: tList, summary: s, briefing: b };
       
-      setWallet(w);
       setHealth(h);
       setGoals(gList);
       setTransactions(tList);
       setSummary(s);
+      setBriefing(b);
       setLoading(false);
     });
   }, []);
 
-  const balance = wallet?.balance ?? 0;
+  const balance = summary?.all_time_savings ?? 0;
   const income = summary?.total_income ?? 0;
   const expense = summary?.total_expense ?? 0;
   const healthScore = health?.score ?? 0;
@@ -96,7 +113,7 @@ export default function Overview() {
         {/* Balance */}
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 4px', letterSpacing: 1, textTransform: 'uppercase' }}>Total Balance</p>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 10, margin: '0 0 4px', letterSpacing: 1, textTransform: 'uppercase' }}>Total Savings</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ color: C.white, fontSize: 32, fontWeight: 700, fontFamily: 'Playfair Display, serif' }}>
                 {loading ? <Skeleton w={140} h={36} bg="rgba(255,255,255,0.15)" rounded={12} /> : (balanceVisible ? `₹${balance.toLocaleString('en-IN')}` : '••••••••')}
@@ -127,6 +144,19 @@ export default function Overview() {
 
       {/* Main content */}
       <div style={{ background: C.cream, borderRadius: '20px 20px 0 0', marginTop: -16, padding: '24px', maxWidth: 948, margin: '-16px auto 0' }}>
+
+        {/* Daily Briefing Banner */}
+        {briefing && (
+          <div style={{ background: C.teal, borderRadius: 16, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ color: C.sage, fontSize: 12, fontWeight: 600, margin: '0 0 4px' }}>☀️ Daily Briefing</p>
+              <p style={{ color: C.white, fontSize: 14, margin: 0 }}>{briefing.insight || briefing.highlights || "Here is your daily financial update."}</p>
+            </div>
+            <button onClick={openMoneyReplay} style={{ background: C.rust, color: C.white, border: 'none', padding: '8px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              Your Monthly Replay ✨
+            </button>
+          </div>
+        )}
 
         {/* Health Score + Quick Stats */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 28 }}>
@@ -274,6 +304,39 @@ export default function Overview() {
           )}
         </div>
       </div>
+
+      {/* Money Replay Modal */}
+      {showReplay && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: C.cream, borderRadius: 24, width: '100%', maxWidth: 400, overflow: 'hidden', position: 'relative' }}>
+            <button onClick={() => setShowReplay(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>
+              <X size={16} color={C.charcoal} />
+            </button>
+            <div style={{ padding: '30px 24px', textAlign: 'center' }}>
+              <h2 style={{ fontFamily: 'Playfair Display, serif', fontSize: 24, color: C.teal, margin: '0 0 8px' }}>Finexa Wrapped</h2>
+              {replayLoading ? (
+                <p style={{ color: C.muted, fontSize: 14 }}>Generating your story...</p>
+              ) : replayData ? (
+                <div>
+                  <p style={{ color: C.rust, fontSize: 15, fontWeight: 600, marginBottom: 24 }}>{replayData.insight}</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {replayData.data?.slides?.map((slide: any, idx: number) => (
+                      <div key={idx} style={{ background: C.white, padding: 16, borderRadius: 16, border: `1px solid ${C.border}` }}>
+                         <span style={{ fontSize: 24, display: 'block', marginBottom: 8 }}>{slide.emoji}</span>
+                         <h4 style={{ margin: '0 0 4px', color: C.charcoal, fontSize: 16 }}>{slide.title}</h4>
+                         {slide.metric && <p style={{ color: C.teal, fontSize: 20, fontWeight: 700, margin: 0 }}>{slide.metric}</p>}
+                         {slide.subtitle && <p style={{ color: C.muted, fontSize: 12, margin: '4px 0 0' }}>{slide.subtitle}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p style={{ color: C.rust, fontSize: 14 }}>Could not load replay.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

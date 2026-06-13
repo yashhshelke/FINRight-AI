@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ChatProvider } from './contexts/ChatContext';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Landing from './pages/Landing';
@@ -21,7 +22,6 @@ import Settings from './pages/dashboard/Settings';
 import GoalsTracker from './pages/dashboard/GoalsTracker';
 import SpendingInsights from './pages/dashboard/SpendingInsights';
 import BudgetOptimizer from './pages/dashboard/BudgetOptimizer';
-import Wallet from './pages/dashboard/Wallet';
 import Cards from './pages/dashboard/Cards';
 import UPIAnalyser from './pages/dashboard/UPIAnalyser';
 import FinancialEducation from './pages/dashboard/FinancialEducation';
@@ -52,7 +52,11 @@ export default function App() {
 
                         {/* Dashboard — protected */}
                         <Route path="/dashboard" element={
-                            <ProtectedRoute><DashboardLayout /></ProtectedRoute>
+                            <ProtectedRoute>
+                                <ChatProvider>
+                                    <DashboardLayout />
+                                </ChatProvider>
+                            </ProtectedRoute>
                         }>
                             <Route index element={<Overview />} />
                             <Route path="transactions" element={<Transactions />} />
@@ -61,7 +65,6 @@ export default function App() {
                             <Route path="coach" element={<AICoach />} />
                             <Route path="spending" element={<SpendingInsights />} />
                             <Route path="budget" element={<BudgetOptimizer />} />
-                            <Route path="wallet" element={<Wallet />} />
                             <Route path="cards" element={<Cards />} />
                             <Route path="upi" element={<UPIAnalyser />} />
                             <Route path="education" element={<FinancialEducation />} />

@@ -63,7 +63,7 @@ MIDDLEWARE = [
 ]
 
 _CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "")
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "False") == "True"
+CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _CORS_ALLOWED_ORIGINS.split(",") if origin.strip()]
 ROOT_URLCONF = "core.urls"
 
@@ -95,7 +95,7 @@ if _DB_URL:
         "default": _dj_db.config(
             default=_DB_URL,
             conn_max_age=600,
-            ssl_require=True,
+            ssl_require=os.getenv("DB_SSL_REQUIRE", "True") == "True",
         )
     }
 else:
@@ -182,7 +182,6 @@ if _REDIS_URL:
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
                 "hosts": [_REDIS_URL],
-                "ssl_cert_reqs": None,  # Upstash uses TLS
             },
         }
     }
@@ -210,9 +209,6 @@ if _REDIS_URL:
         "default": {
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": _REDIS_URL,
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            },
             "KEY_PREFIX": "finexa",
             "TIMEOUT": 3600,          # default TTL: 1 hour
         }

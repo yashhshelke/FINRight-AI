@@ -142,6 +142,7 @@ def generate_text(
                 messages=messages,
                 temperature=temperature,
                 max_tokens=max_output_tokens,
+                timeout=60.0,
             )
             text = _extract_output_text(response)
             if not text:
@@ -165,7 +166,15 @@ def generate_text(
 
 
 def strip_json_fences(raw_text: str) -> str:
+    import re
     cleaned = (raw_text or "").strip()
+    
+    # Try to extract content between the first { or [ and the last } or ]
+    match = re.search(r'(\{.*\}|\[.*\])', cleaned, re.DOTALL)
+    if match:
+        return match.group(1).strip()
+        
+    # Fallback to the original cleanup if no match
     if cleaned.startswith("```json"):
         cleaned = cleaned[7:]
     if cleaned.startswith("```"):

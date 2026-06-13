@@ -28,7 +28,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         ValidationError: If email already exists, passwords don't match,
                         or password doesn't meet strength requirements
     """
-    full_name = serializers.CharField(required=True, write_only=True)
+    full_name = serializers.CharField(required=False, allow_blank=True, write_only=True)
     email = serializers.EmailField(
         required=True,
         validators=[UniqueValidator(

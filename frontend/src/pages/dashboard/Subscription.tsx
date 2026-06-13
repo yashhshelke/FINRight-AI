@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Sparkles, Zap, Crown, Star } from 'lucide-react';
+import { Check, Sparkles, Zap, Crown, Star, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { AIAPI } from '@/lib/api';
 
 const PLANS = [
     {
@@ -18,7 +19,6 @@ const PLANS = [
             'Budget tracking',
             'Savings goals (up to 3)',
             'Basic AI coach (text only)',
-            'Wallet — basic',
             'Gamification & badges',
         ],
         unavailable: ['Document upload & AI analysis', 'Advanced simulations', 'Priority support', 'Unlimited goals'],
@@ -80,8 +80,51 @@ export default function Subscription() {
     const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
     const aiCredits = user?.ai_credits ?? 100000;
 
+    const [hunterData, setHunterData] = useState<any>(null);
+    useEffect(() => {
+        AIAPI.getSubscriptionHunter().then(setHunterData).catch(console.error);
+    }, []);
+
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
+            {/* Subscription Hunter */}
+            {hunterData && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass p-5 mb-8" style={{ border: '1px solid var(--aqua)' }}>
+                    <div className="flex items-center gap-3 mb-4">
+                        <Sparkles size={20} style={{ color: 'var(--aqua)' }} />
+                        <h3 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>AI Subscription Hunter</h3>
+                    </div>
+                    <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>{hunterData.insight}</p>
+                    
+                    {hunterData.data?.subscriptions?.length > 0 ? (
+                        <div className="space-y-3">
+                            {hunterData.data.subscriptions.map((sub: any, idx: number) => (
+                                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl" style={{ background: 'var(--bg-elevated)', border: `1px solid ${sub.cancel_recommended ? 'rgba(255,100,100,0.3)' : 'var(--border-subtle)'}` }}>
+                                    <div className="mb-2 sm:mb-0">
+                                        <p className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>{sub.brand}</p>
+                                        <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{sub.occurrences} payments · Last seen {new Date(sub.last_seen_at).toLocaleDateString()}</p>
+                                        {sub.cancel_recommended && (
+                                            <div className="flex items-center gap-1 mt-2 text-xs" style={{ color: '#ff6b6b' }}>
+                                                <AlertCircle size={12} />
+                                                <span>{sub.recommendation}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-left sm:text-right">
+                                        <p className="font-bold text-lg" style={{ color: 'var(--text-primary)' }}>₹{sub.estimated_monthly_cost.toFixed(2)}<span className="text-xs font-normal text-gray-500">/mo</span></p>
+                                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${sub.status === 'inactive' ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                            {sub.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No recurring subscriptions detected yet.</p>
+                    )}
+                </motion.div>
+            )}
+
             <div>
                 <h1 className="font-display font-bold text-2xl" style={{ color: 'var(--text-primary)' }}>Subscription Plans</h1>
                 <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>Upgrade your AI capabilities — credits power every AI feature</p>

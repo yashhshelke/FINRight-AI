@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Zap, AlertTriangle, TrendingDown, Loader2 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 import { simulateIncomeDropScenario, formatFullCurrency } from '../../lib/calculations';
-import { TransactionsAPI, WalletAPI } from '../../lib/api';
+import { TransactionsAPI } from '../../lib/api';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -40,10 +40,6 @@ export default function IncomeSimulator() {
                     setMonthlyIncome(income);
                     setMonthlyExpenses(expenses);
                 }
-
-                // Fetch wallet balance as emergency savings
-                const wallet = await WalletAPI.getWallet().catch(() => null);
-                if (wallet) setEmergencySavings(+wallet.balance || 0);
             } catch (err) {
                 console.error('IncomeSimulator fetch error:', err);
             } finally {

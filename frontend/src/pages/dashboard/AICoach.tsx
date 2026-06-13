@@ -9,17 +9,7 @@ const C = {
   sageLight: 'rgba(205,250,206,0.35)',
 };
 
-type Message = {
-  id: number; role: 'user' | 'assistant'; text: string;
-  attachment?: { name: string }; sources?: { document_name: string; preview: string; relevance_score: number }[];
-  chips?: string[]; time: string; loading?: boolean;
-};
-
-const initialMessages: Message[] = [{
-  id: 1, role: 'assistant', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-  text: "Hi! I'm your Finexa AI financial assistant. I can analyze your invoices, track spending patterns, and give personalized money insights.\n\nUpload a document or ask me anything!",
-  chips: ['Analyze my spending', 'Budget tips', 'Upload invoice'],
-}];
+import { useChat } from '@/contexts/ChatContext';
 
 const quickPrompts = [
   { icon: TrendingUp, text: 'Spending trends' },
@@ -28,63 +18,21 @@ const quickPrompts = [
 ];
 
 export default function AICoach() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const { messages, isTyping, sendMessage: sendChatMessage } = useChat();
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    // Load global chat history
-    AIAPI.getHistory().then((history) => {
-      if (history && history.length > 0) {
-        setMessages(history);
-      } else {
-        setMessages(initialMessages);
-      }
-    }).catch(console.error);
-  }, []);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
 
   const sendMessage = async () => {
     if (!input.trim() && !attachedFile) return;
-    const userMsg: Message = {
-      id: Date.now(), role: 'user', text: input || 'Uploaded a file',
-      attachment: attachedFile ? { name: attachedFile.name } : undefined,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    };
-    setMessages(prev => [...prev, userMsg]);
     const question = input;
+    const file = attachedFile;
     setInput('');
-    setIsTyping(true);
-
-    try {
-      // If file attached, upload first
-      if (attachedFile) {
-        await AIAPI.processDocument(attachedFile);
-        setAttachedFile(null);
-      }
-
-      // RAG chat (global context, searches all user documents)
-      const res = await AIAPI.chat(question || 'I just uploaded a document. What can you tell me about it?');
-      const aiMsg: Message = {
-        id: Date.now() + 1, role: 'assistant', text: res.answer,
-        sources: res.sources,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev, aiMsg]);
-    } catch (e: any) {
-      const errMsg: Message = {
-        id: Date.now() + 1, role: 'assistant',
-        text: `Sorry, I encountered an error: ${e.message}. Please try again.`,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setMessages(prev => [...prev, errMsg]);
-    } finally {
-      setIsTyping(false);
-    }
+    setAttachedFile(null);
+    await sendChatMessage(question, undefined, file || undefined);
   };
 
   return (

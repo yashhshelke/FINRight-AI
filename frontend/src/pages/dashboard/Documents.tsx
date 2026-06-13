@@ -48,7 +48,7 @@ export default function Documents() {
         setIsUploading(true);
         setError('');
         try {
-            const result = await AIAPI.processDocument(file);
+            const result: any = await AIAPI.processDocument(file);
             // Extract summary text — backend may return string or object
             let summaryText = '';
             if (typeof result.summary === 'string') summaryText = result.summary;

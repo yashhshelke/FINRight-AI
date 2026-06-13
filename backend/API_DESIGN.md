@@ -303,45 +303,35 @@ Saving tips derived from the document's expense categories.
 
 ---
 
-### RAG Chat
+### RAG Chat (WebSocket)
 
-#### `POST /api/ai/chat/`
-RAG-powered chat grounded in the user's uploaded documents.
+#### `WebSocket ws://<host>/ws/ai/chat/`
+Real-time RAG-powered chat grounded in the user's uploaded documents.
+Supports typing indicators and token streaming.
 
-**Request body:**
+**Connection string:** `ws://localhost:8000/ws/ai/chat/?token=<JWT_ACCESS_TOKEN>`
+
+**Cost: 2 credits per question.**
+
+**Message format to send:**
 ```json
 {
   "question": "How much did I spend on Swiggy last month?",
-  "document_id": 8,
-  "mongo_id": "64f...",
-  "session_id": null
+  "document_id": 8
 }
 ```
-*All optional except `question`. `document_id` restricts retrieval to one document. `mongo_id` maps to a SQL `Document` via `mongo_doc_id` field.*
+*`document_id` restricts retrieval to one document. If omitted, uses all documents.*
+
+**Streamed Responses:**
+1. `{"type": "typing", "status": "start"}`
+2. `{"type": "token", "text": "You "}` (multiple tokens sent individually)
+3. `{"type": "typing", "status": "stop"}`
+4. `{"type": "done", "complete": "You spent..."}`
 
 **Security model:**
 - Retrieval is performed against SQL `DocumentChunk` table only (AES-encrypted `EncryptedTextField`)
 - MongoDB is **never queried for retrieval** — it stores only encrypted structured metadata (`extracted_data`)
-- LLM receives only the top-K retrieved chunk snippets (≤5 × 800 chars), never raw JSON or full document text
-- Legacy documents uploaded before chunked indexing return `409` — user must re-upload
-
-**Response `200`:**
-```json
-{
-  "answer": "You spent ₹2,340 on Swiggy across 6 orders last month.",
-  "sources": [
-    { "document_name": "bank_statement_may.pdf", "preview": "...Swiggy 390...", "relevance_score": 0.91 }
-  ],
-  "session_id": 12
-}
-```
-
-**Error `409`** — legacy document without SQL chunks:
-```json
-{
-  "error": "This document was uploaded before the new secure storage system was introduced. Please re-upload your PDF to enable chat."
-}
-```
+- Chunks pass through a **Regex PII Scrubber** (`pii_scrubber.py`) before being sent to the LLM to mask SSNs, Emails, and Phone Numbers.
 
 ---
 
@@ -1119,44 +1109,66 @@ DocumentProcessAPIView
     ├── Document.objects.create()            → SQL Document record
     └── index_document()                     → SQL DocumentChunk records
                                                (EncryptedTextField, cosine-searchable)
-Client asks question
+Client asks question via WebSocket
     │
     ▼
-ChatAPIView → unified_rag_chat.chat_with_documents()
-    ├── resolve document_id / mongo_id → SQL Document
-    ├── retrieve_chunks() → top-K DocumentChunk (decrypt + embed + cosine rank)
-    ├── LLM receives ONLY chunk text snippets (never raw JSON or full doc)
-    └── Response: { answer, sources, session_id }
+DocumentChatConsumer (WebSocket)
+    ├── deducts 2 credits
+    ├── unified_rag_chat.chat_with_documents()
+    │   ├── retrieve_chunks() → top-K DocumentChunk
+    │   ├── pii_scrubber.scrub_pii() → masks SSNs/Emails
+    │   └── LLM receives ONLY chunk text snippets
+    ├── Streams typing indicators (start/stop)
+    └── Streams individual tokens to client
 ```
 
 ---
 
-## Error reference
+## 11. Security & Compliance
+
+The Finexa backend includes enterprise-grade security controls specifically designed for SOC2/PCI-DSS alignment:
+
+- **Audit Logging:** The `AuditLoggingMiddleware` intercepts all requests to sensitive financial endpoints (`/api/transactions/`, `/api/ai/`) and logs the User ID, Timestamp, IP, and Path to a standalone `security_audit.log` file.
+- **PII Masking:** A regex-based scrubber (`pii_scrubber.py`) masks Emails, Phone Numbers, Credit Cards, and SSNs in document chunks *before* they are sent to the LLM.
+- **Strict Rate Limiting:** All endpoints are protected by granular DRF Throttles (`BurstAnonThrottle`, `LLMRateThrottle`, `SimulationThrottle`, etc.) to prevent abuse and billing attacks.
+- **Data Encryption:** Django-Cryptography provides at-rest AES encryption for `DocumentChunk` fields containing extracted financial data.
+
+---
+
+## 12. OpenAPI & Interactive Docs
+
+The entire REST API is fully typed and annotated using `drf-spectacular`.
+
+You can view the interactive documentation and download the OpenAPI `schema.yml` locally:
+- **Swagger UI:** `http://localhost:8000/api/schema/swagger-ui/`
+- **ReDoc:** `http://localhost:8000/api/schema/redoc/`
+- **Schema File:** `http://localhost:8000/api/schema/`
+
+---
+
+## 13. Error reference
+
+Finexa AI attempts to return standard HTTP status codes:
 
 | HTTP status | When |
 |---|---|
 | `400 Bad Request` | Missing required field; invalid tool name |
+| `401 Unauthorized` | Missing/invalid JWT token |
 | `402 Payment Required` | Insufficient user credits |
 | `404 Not Found` | Document or resource not found |
 | `409 Conflict` | Legacy document without SQL chunks (re-upload required) |
+| `429 Too Many Requests` | Throttle limit exceeded |
 | `500 Internal Server Error` | Unexpected service failure; LLM timeout |
 
 ---
 
-## Notes & next steps
+## 14. Notes & next steps
 
 ### Current behaviour notes
 - **Credit billing:** `document/process/`, `simulate/`, `credit-analysis/`, and `goal-plan/?refresh=true` deduct credits. Handle `402` gracefully on the client.
-- **MongoDB role (post-refactor):** MongoDB Atlas stores **only** `extracted_data` (encrypted expense metadata for summary/suggestions). It is **never used for RAG retrieval**. All vector search is on SQL `DocumentChunk`.
-- **Caching:** Financial health score cached 1 hour (Redis/in-memory). Spending analysis cached 24 hours via `SpendingPattern` table.
-- **Celery tasks:** `tasks.py` provides background jobs for nightly financial digest, money replay report generation, goal investment plans, and periodic knowledge base syncing (when Celery broker is configured).
-- **Qdrant (optional):** Set `QDRANT_URL` + `QDRANT_API_KEY` env vars to enable Qdrant for knowledge base search. Falls back to in-process cosine similarity if not configured.
-- **Pagination:** List endpoints use page size 20 where configured.
-- **Side-effects:** Transaction creation invalidates health score cache. Several endpoints create `Notification` records.
+- **MongoDB role:** MongoDB Atlas stores **only** `extracted_data` (encrypted expense metadata for summary/suggestions). It is **never used for RAG retrieval**.
+- **Pagination:** List endpoints use page size 20 where configured (`StandardResultsSetPagination`).
 
 ### Next steps
-- Generate OpenAPI/Swagger spec from views/serializers (`drf-yasg` or `drf-spectacular`).
-- Add rate-limiting (throttling) for LLM-heavy endpoints: `/chat/`, `/intelligence/`, `/goal-plan/`.
-- Add request/response JSON schema examples per endpoint (auto-generate from serializers).
-- Expose `suggest_category_cuts` and `suggest_budget_allocation` from `recommendation_engine.py` as dedicated API endpoints.
 - Add `GET /api/ai/financial-health/investment-readiness/` endpoint wrapping `get_investment_readiness_score`.
+- Expand testing coverage for edge-cases in the PII scrubber and Audit logs.

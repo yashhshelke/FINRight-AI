@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { WalletAPI, HealthAPI, GoalsAPI, TransactionsAPI } from '@finexa/api';
+import { HealthAPI, GoalsAPI, TransactionsAPI } from '@finexa/api';
 
 const C = { teal: '#003d3d', sage: '#cdface', charcoal: '#2a2b2f', rust: '#b05b36', cream: '#f5eee2', white: '#ffffff', muted: 'rgba(42,43,47,0.45)', border: 'rgba(42,43,47,0.1)', rustLight: 'rgba(176,91,54,0.1)', sageLight: 'rgba(205,250,206,0.4)' };
 
 export default function HomeScreen() {
-  const [wallet, setWallet] = useState<any>(null);
   const [health, setHealth] = useState<any>(null);
   const [goals, setGoals] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -14,20 +13,18 @@ export default function HomeScreen() {
 
   useEffect(() => {
     Promise.all([
-      WalletAPI.getWallet().catch(() => null),
       HealthAPI.getScore().catch(() => null),
       GoalsAPI.list().catch(() => ({ results: [] })),
       TransactionsAPI.list(1).catch(() => ({ results: [] })),
       TransactionsAPI.summary().catch(() => null),
     ]).then(([w, h, g, t, s]) => {
-      setWallet(w); setHealth(h);
+      setHealth(h);
       setGoals(g?.results?.slice(0, 4) ?? []);
       setTransactions(t?.results?.slice(0, 5) ?? []);
       setSummary(s);
     });
   }, []);
-
-  const balance = wallet?.balance ?? 0;
+  const balance = summary?.all_time_savings ?? 0;
   const income = summary?.total_income ?? 0;
   const expense = summary?.total_expense ?? 0;
   const score = health?.score ?? 0;

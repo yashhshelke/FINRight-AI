@@ -9,7 +9,8 @@ This document serves as the complete technical reference for connecting a **Reac
 - **Backend Framework:** Django 5.2 + Django REST Framework
 - **Databases:** PostgreSQL (Neon) for relational data, MongoDB (Atlas) for unstructured AI data.
 - **Authentication:** JWT (JSON Web Tokens) via `djangorestframework-simplejwt`.
-- **RAG Chatbot:** Locally embedded text chunks stored in Postgres (via `sentence-transformers`), querying via OpenRouter/OpenAI.
+- **RAG Chatbot:** Text chunks stored in Postgres, queried via OpenRouter/OpenAI. PII is scrubbed before leaving the server.
+- **WebSocket:** Async Channels used for real-time streaming of AI responses.
 - **Base URL (Local):** `http://10.0.2.2:8000` (Android Emulator) or `http://localhost:8000` (iOS Simulator).
 - **Base URL (Production):** *Your deployed domain URL*
 
@@ -22,10 +23,10 @@ To interact with this backend smoothly, we recommend:
 - `axios`: For making HTTP requests.
 - `expo-secure-store` or `@react-native-async-storage/async-storage`: To securely store JWT tokens.
 - `react-native-document-picker` or `expo-document-picker`: For uploading invoices.
-- `@react-navigation/native`: For routing (Auth stack vs App stack).
+- `react-native-websocket` or standard `WebSocket` API for real-time RAG chat.
 
 ### Axios Interceptor Setup
-You must attach the JWT token to every protected request. Create an Axios instance that handles this automatically:
+You must attach the JWT token to every protected request. Create an Axios instance that handles this automatically, and properly handles our new **Rate Limits (429)** and **Credit Limits (402)**.
 
 ```javascript
 import axios from 'axios';
@@ -43,6 +44,18 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 429) {
+      alert("You're making too many requests. Please slow down.");
+    } else if (error.response?.status === 402) {
+      alert("Insufficient AI credits. Please upgrade your plan.");
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
 ```
 
@@ -55,7 +68,7 @@ Base path: `/auth/`
 ### Register
 Create a new user.
 - **POST** `/auth/register/`
-- **Body:** `{"email": "test@finexa.ai", "username": "test", "password": "...", "password_confirm": "...", "first_name": "John"}`
+- **Body:** `{"email": "test@finexa.ai", "full_name": "John Doe", "password": "...", "password_confirm": "..."}`
 - **Response (201):** Returns `user` object and `tokens` (access, refresh).
 
 ### Login
@@ -66,7 +79,7 @@ Create a new user.
 
 ### Get Current User Profile
 - **GET** `/auth/me/` (Requires Auth)
-- **Response (200):** User profile data (balance, tier, etc.)
+- **Response (200):** User profile data (balance, tier, credits, etc.)
 
 ---
 
@@ -76,7 +89,7 @@ Base path: `/api/ai/`
 
 ### Process Document (Invoice/Receipt Upload)
 Uploads a document, extracts text, chunks it, embeds it in Postgres, and generates an expense summary via LLM.
-- **POST** `/api/ai/document/process/` (Requires Auth)
+- **POST** `/api/ai/document/process/` (Requires Auth, **Costs 5 Credits**)
 - **Headers:** `Content-Type: multipart/form-data`
 - **Body:** `file` (Supports `.pdf`, `.png`, `.jpg`, `.txt`)
 - **React Native Example:**
@@ -90,25 +103,37 @@ formData.append('file', {
 const response = await api.post('/api/ai/document/process/', formData, {
   headers: { 'Content-Type': 'multipart/form-data' }
 });
-// Save response.data.document_id for the chat!
+// Save response.data.document_id to filter chats later!
 ```
 
-### RAG Chat (Talk to Documents)
-Ask questions based on the uploaded documents.
-- **POST** `/api/ai/chat/` (Requires Auth)
-- **Body:** 
-```json
-{
-  "question": "How much did I spend on food?",
-  "document_id": 1  // Optional: Restrict to a specific document
-}
-```
-- **Response (200):** 
-```json
-{
-  "answer": "You spent ₹4,500 on food.",
-  "sources": [{"document_name": "invoice.pdf", "preview": "...", "relevance_score": 0.92}]
-}
+### RAG Chat (Real-time WebSockets)
+To provide a ChatGPT-like streaming experience, connect to the WebSocket endpoint.
+- **URL:** `ws://10.0.2.2:8000/ws/ai/chat/?token=<YOUR_JWT_ACCESS_TOKEN>`
+- **Cost:** **2 Credits per question.**
+
+**Client Example:**
+```javascript
+const ws = new WebSocket(`ws://10.0.2.2:8000/ws/ai/chat/?token=${accessToken}`);
+
+// Send a question
+ws.send(JSON.stringify({
+  question: "How much did I spend on food?",
+  document_id: 1 // Optional. Omit to search all documents.
+}));
+
+// Listen for streaming tokens
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  if (data.type === "typing" && data.status === "start") {
+    // Show loading spinner
+  } else if (data.type === "token") {
+    // Append data.text to the UI
+  } else if (data.type === "done") {
+    // Hide spinner, response complete
+  } else if (data.type === "error") {
+    // Handle error (e.g., Insufficient Credits)
+  }
+};
 ```
 
 ---
@@ -116,17 +141,12 @@ Ask questions based on the uploaded documents.
 ## 💰 5. Transactions & Core Features
 
 ### Transactions
-- **GET** `/api/transactions/` — List all user transactions.
-- **POST** `/api/transactions/` — Create a manual transaction (`{"amount": 100, "category": "Food", "type": "expense"}`)
-- **GET** `/api/transactions/summary/` — Get income/expense totals.
+- **GET** `/api/transactions/` — List all user transactions. (Paginated, 20 per page).
+- **POST** `/api/transactions/` — Create a manual transaction (`{"amount": 100, "category": "Food", "type": "expense"}`).
 
 ### Savings Goals
 - **GET** `/api/goals/` — List all savings goals.
 - **POST** `/api/goals/` — Create a goal (`{"title": "Car", "target_amount": 50000, "current_amount": 0, "deadline": "2026-12-31"}`).
-
-### Wallet Management
-- **GET** `/api/ai/wallet/` — Get current wallet balance.
-- **POST** `/api/ai/wallet/add-money/` — Deposit virtual funds.
 
 ### Financial Health Score
 - **GET** `/api/ai/financial-health/score/` — Get a dynamic AI-calculated health score (0-100).
@@ -135,15 +155,22 @@ Ask questions based on the uploaded documents.
 
 ---
 
-## 🎮 6. Gamification
+## 🛡️ 6. Security & Infrastructure Notes
 
-- **GET** `/api/gamification/challenges/` — List daily/weekly financial challenges.
-- **GET** `/api/gamification/badges/` — List all unlockable badges.
-- **GET** `/api/gamification/summary/` — Get user points and current level.
+1. **Rate Limiting:** If you send too many requests quickly, you will receive a `429 Too Many Requests` error. Implement exponential backoff or debouncing on your UI inputs.
+2. **Audit Logs:** All financial and AI API calls are strictly logged on the backend.
+3. **PII Masking:** Your users' sensitive data (SSN, Emails, Phone numbers) found in uploaded documents are automatically masked before being sent to the AI.
 
 ---
 
-## 🛠️ 7. Troubleshooting Frontend Issues
+## 🎮 7. Gamification
+
+- **GET** `/api/gamification/challenges/` — List daily/weekly financial challenges.
+- **GET** `/api/gamification/badges/` — List all unlockable badges.
+
+---
+
+## 🛠️ 8. Troubleshooting Frontend Issues
 
 1. **Network Error / Connection Refused:**
    If using an Android emulator, `localhost` refers to the Android device itself. You MUST use `10.0.2.2:8000` to reach the Django server running on your computer.
@@ -151,3 +178,5 @@ Ask questions based on the uploaded documents.
    Ensure your Axios interceptor is correctly retrieving the JWT token and attaching `Bearer <token>` to the `Authorization` header.
 3. **FormData Uploads Failing:**
    React Native's `FormData` requires the file object to have exactly `uri`, `name`, and `type` properties. Do not stringify the body.
+4. **Interactive API Docs:**
+   You can view the full Swagger UI Interactive Docs in your browser at `http://localhost:8000/api/schema/swagger-ui/`.

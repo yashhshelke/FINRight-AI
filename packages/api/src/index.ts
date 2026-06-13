@@ -243,27 +243,6 @@ export const AuthAPI = {
   clearTokens,
 };
 
-// ─── Wallet API ───────────────────────────────────────────────────────────────
-export const WalletAPI = {
-  getWallet: () =>
-    apiFetch<{ id: number; balance: number; currency: string }>('/api/ai/wallet/'),
-
-  addMoney: (amount: number, description = 'Deposit') =>
-    apiFetch<any>('/api/ai/wallet/add-money/', {
-      method: 'POST', body: JSON.stringify({ amount, description }),
-    }),
-
-  withdraw: (amount: number, description = 'Withdrawal') =>
-    apiFetch<any>('/api/ai/wallet/withdraw/', {
-      method: 'POST', body: JSON.stringify({ amount, description }),
-    }),
-
-  getTransactions: (page = 1) =>
-    apiFetch<{ count: number; results: any[] }>(`/api/ai/wallet/transactions/?page=${page}`),
-
-  getTimeline: () => apiFetch<any[]>('/api/ai/wallet/timeline/'),
-};
-
 // ─── Card API ─────────────────────────────────────────────────────────────────
 export const CardAPI = {
   list: () =>
@@ -335,6 +314,9 @@ export const GoalsAPI = {
     apiFetch<any>('/api/ai/goal-plan/simulate/', {
       method: 'POST', body: JSON.stringify({ change_pct: changePct }),
     }),
+
+  goalInvestment: (data: any) =>
+    apiFetch<any>('/api/ai/goal-investment/', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // ─── Gamification API ─────────────────────────────────────────────────────────
@@ -392,6 +374,15 @@ export const AIAPI = {
     apiFetch<any>(`/api/ai/expense-document/${mongoId}/suggestions/`),
 
   // ── RAG Chatbot ──────────────────────────────────────────────────
+  getChatWebSocketUrl: (documentId?: number) => {
+    const { access } = getTokens();
+    const wsUrl = BASE_URL.replace(/^http/, 'ws') + '/ws/ai/chat/';
+    const params = new URLSearchParams({ token: access });
+    if (documentId) params.set('document_id', String(documentId));
+    return `${wsUrl}?${params.toString()}`;
+  },
+
+  // (Deprecated: use WebSocket)
   chat: (question: string, documentId?: number) =>
     apiFetch<RagChatResponse>('/api/ai/chat/', {
       method: 'POST',
@@ -404,6 +395,24 @@ export const AIAPI = {
 
   getChatMessages: (sessionId: string) =>
     apiFetch<any>(`/api/ai/chat-sessions/${sessionId}/messages/`),
+
+  // ── Intelligence & Tools ─────────────────────────────────────────
+  getIntelligence: (data: any) =>
+    apiFetch<any>('/api/ai/intelligence/', { method: 'POST', body: JSON.stringify(data) }),
+
+  callTool: (data: any) =>
+    apiFetch<any>('/api/ai/tools/', { method: 'POST', body: JSON.stringify(data) }),
+
+  getSubscriptionHunter: (lookbackDays?: number) =>
+    apiFetch<any>(`/api/ai/subscription-hunter/${lookbackDays ? `?lookback_days=${lookbackDays}` : ''}`),
+
+  getMoneyReplay: (month?: string) =>
+    apiFetch<any>(`/api/ai/money-replay/${month ? `?month=${month}` : ''}`),
+
+  getDailyBriefing: () => apiFetch<any>('/api/ai/daily-briefing/'),
+
+  searchKnowledge: (query: string) =>
+    apiFetch<any>(`/api/ai/knowledge/search/?q=${encodeURIComponent(query)}`),
 
   // ── Analysis ─────────────────────────────────────────────────────
   getSpendingAnalysis: (refresh = false) =>
@@ -419,6 +428,17 @@ export const AIAPI = {
   creditAnalysis: () => apiFetch<any>('/api/ai/credit-analysis/'),
 
   getLoanList: () => apiFetch<any>('/api/ai/loans/'),
+
+  getGoalInvestment: (goalId: number, riskProfile: string, monthlyContribution: number) =>
+    apiFetch<any>('/api/ai/goal-investment/', { method: 'POST', body: JSON.stringify({ goal_id: goalId, risk_profile: riskProfile, monthly_contribution: monthlyContribution }) }),
+
+  createLoan: (data: any) => apiFetch<any>('/api/ai/loans/', { method: 'POST', body: JSON.stringify(data) }),
+};
+
+// ─── Reports API ──────────────────────────────────────────────────────────────
+export const ReportsAPI = {
+  list: () => apiFetch<any[]>('/api/reports/'),
+  generate: () => apiFetch<any>('/api/reports/', { method: 'POST' }),
 };
 
 // ─── Notifications API ────────────────────────────────────────────────────────

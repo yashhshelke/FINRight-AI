@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { educationCards, videoLessons, advisoryQuiz } from '../../lib/mockData';
 import { useTheme } from '../../contexts/ThemeContext';
+import { AIAPI } from '../../lib/api';
 
 // --- Sub-components (Refined for Theme Awareness) ---
 
@@ -250,12 +251,32 @@ function VideoMasterclass({ video }: { video: typeof videoLessons[0] }) {
 
 export default function StrategicAdvisory() {
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const { isDark } = useTheme();
 
     const categories = ['All', ...new Set(educationCards.map(c => c.category))];
     const filtered = activeCategory && activeCategory !== 'All'
         ? educationCards.filter(c => c.category === activeCategory)
         : educationCards;
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchQuery.trim()) {
+            setSearchResults([]);
+            return;
+        }
+        setIsSearching(true);
+        try {
+            const res = await AIAPI.searchKnowledge(searchQuery);
+            setSearchResults(res.results || []);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsSearching(false);
+        }
+    };
 
     return (
         <div className="space-y-12 pb-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -273,6 +294,22 @@ export default function StrategicAdvisory() {
                 </div>
 
                 <div className="mt-8 md:mt-0 flex flex-col items-end gap-5">
+                    <form onSubmit={handleSearch} className={`relative flex items-center w-full max-w-sm rounded-full overflow-hidden border transition-all duration-300 ${isDark ? 'bg-black/20 border-white/10' : 'bg-white border-black/10'}`}>
+                        <div className="pl-4 text-slate-500">
+                            {isSearching ? <RefreshCcw size={16} className="animate-spin" /> : <Search size={16} />}
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search knowledge base..."
+                            value={searchQuery}
+                            onChange={e => {
+                                setSearchQuery(e.target.value);
+                                if (!e.target.value) setSearchResults([]);
+                            }}
+                            className={`w-full bg-transparent border-none outline-none text-sm px-3 py-2.5 ${isDark ? 'text-white' : 'text-slate-900'}`}
+                        />
+                    </form>
+                    
                     <div className={`px-5 py-2.5 backdrop-blur-md border rounded-2xl flex items-center gap-3 shadow-2xl transition-all duration-300 ${isDark ? 'bg-purple-500/5 border-purple-500/20' : 'bg-black/[0.02] border-black/5'
                         }`}>
                         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
@@ -280,6 +317,32 @@ export default function StrategicAdvisory() {
                     </div>
                 </div>
             </div>
+
+            {/* Search Results */}
+            <AnimatePresence>
+                {searchResults.length > 0 && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className={`font-bold text-sm uppercase tracking-widest ${isDark ? 'text-white' : 'text-slate-900'}`}>Search Results</h3>
+                            <button onClick={() => { setSearchQuery(''); setSearchResults([]); }} className="text-xs text-slate-500 hover:text-red-400">Clear</button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {searchResults.map((res: any, idx: number) => (
+                                <div key={idx} className={`p-5 rounded-2xl border ${isDark ? 'bg-black/40 border-white/10' : 'bg-white border-black/5'} shadow-sm`}>
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className={`text-[9px] px-2 py-0.5 rounded border font-bold uppercase tracking-widest ${isDark ? 'bg-purple-500/10 text-purple-400 border-purple-500/20' : 'bg-purple-500/5 text-purple-600 border-purple-500/20'}`}>
+                                            {res.type || 'Insight'}
+                                        </span>
+                                        <span className={`text-[10px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Relevance: {Math.round((res.relevance_score || 0)*100)}%</span>
+                                    </div>
+                                    <h4 className={`font-bold text-base mb-2 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{res.title}</h4>
+                                    <p className={`text-sm leading-relaxed ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>{res.content}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Strategic Masterclasses */}
             <section className="space-y-8">

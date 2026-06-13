@@ -16,7 +16,7 @@ const FAQS = [
         category: 'AI Credits',
         items: [
             { q: 'What are AI credits and how do they work?', a: 'AI credits power every AI feature — each chat message costs 100 credits, a document analysis costs 500 credits, and a risk simulation costs 200 credits. You start with 100,000 free credits. Top up any time from the Subscription page.' },
-            { q: 'What happens if I run out of credits?', a: 'You can continue to use all non-AI features (budget tracking, goal setting, wallet, transactions etc.) even with zero credits. To use AI features again, simply top up with one of our credit packages.' },
+            { q: 'What happens if I run out of credits?', a: 'You can continue to use all non-AI features (budget tracking, goal setting, transactions etc.) even with zero credits. To use AI features again, simply top up with one of our credit packages.' },
             { q: 'Do credits expire?', a: 'Never. Credits you purchase stay in your account forever.' },
         ],
     },

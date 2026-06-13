@@ -83,7 +83,8 @@ def _gather_user_financial_context(user):
 
     total_income_90d = sum(float(t.amount or 0) for t in txns if t.type == 'income')
     total_expense_90d = sum(float(t.amount or 0) for t in txns if t.type == 'expense')
-    monthly_income = round(total_income_90d / 3, 2) if total_income_90d else 0
+    profile_income = float(user.income or 0)
+    monthly_income = max(profile_income, round(total_income_90d / 3, 2) if total_income_90d else 0)
     monthly_expense = round(total_expense_90d / 3, 2) if total_expense_90d else 0
     disposable_income = max(0, monthly_income - monthly_expense)
 
@@ -261,12 +262,14 @@ RULES:
 - For short-term goals (0-2yr): suggest RD, high-interest savings, short-term debt funds
 - For medium-term (2-5yr): suggest balanced funds, conservative hybrid, SIP in diversified funds
 - For long-term (5+yr): suggest SIP in equity mutual funds, index funds, hybrid growth funds
+
+CRITICAL: Return ONLY valid JSON matching the exact schema above. Do NOT wrap the JSON in markdown blocks. Do NOT add any conversational text before or after the JSON.
 """
 
     try:
         raw = generate_text(
             user_prompt=prompt,
-            max_output_tokens=1400,
+            max_output_tokens=3000,
         )
         raw = strip_json_fences(raw)
 
