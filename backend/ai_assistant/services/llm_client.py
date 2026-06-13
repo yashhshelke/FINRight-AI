@@ -111,6 +111,7 @@ def generate_text(
     temperature: float = 0.2,
     max_output_tokens: int = 1200,
     route: str = DEFAULT_ROUTE,
+    response_format: dict | None = None,
 ) -> str:
     messages = []
 
@@ -143,6 +144,7 @@ def generate_text(
                 temperature=temperature,
                 max_tokens=max_output_tokens,
                 timeout=60.0,
+                **({"response_format": response_format} if response_format else {})
             )
             text = _extract_output_text(response)
             if not text:

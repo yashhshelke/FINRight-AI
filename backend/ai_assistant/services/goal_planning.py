@@ -270,6 +270,7 @@ CRITICAL: Return ONLY valid JSON matching the exact schema above. Do NOT wrap th
         raw = generate_text(
             user_prompt=prompt,
             max_output_tokens=3000,
+            response_format={"type": "json_object"}
         )
         raw = strip_json_fences(raw)
 
