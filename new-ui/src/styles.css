@@ -1,0 +1,193 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-surface: var(--surface);
+  --color-cta: var(--cta);
+  --color-cta-foreground: var(--cta-foreground);
+  --color-brand: var(--brand);
+  --color-brand-light: var(--brand-light);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --font-display: "Bebas Neue", "Deltha", "Anton", sans-serif;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: ui-monospace, monospace;
+  --font-equinox: "Orbitron", "Equinox", sans-serif;
+  --font-script: "Parisienne", "Perisian", cursive;
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Dark theme by default — Fingo is dark-first */
+  --background: oklch(0.165 0.012 250);
+  --foreground: oklch(0.985 0.005 250);
+  --surface: oklch(0.205 0.012 250);
+  --card: oklch(0.235 0.014 250);
+  --card-foreground: oklch(0.985 0.005 250);
+  --popover: oklch(0.235 0.014 250);
+  --popover-foreground: oklch(0.985 0.005 250);
+  --primary: oklch(0.985 0.005 250);
+  --primary-foreground: oklch(0.165 0.012 250);
+  --secondary: oklch(0.27 0.015 250);
+  --secondary-foreground: oklch(0.985 0.005 250);
+  --muted: oklch(0.27 0.015 250);
+  --muted-foreground: oklch(0.72 0.02 250);
+  --accent: oklch(0.27 0.015 250);
+  --accent-foreground: oklch(0.985 0.005 250);
+  --destructive: oklch(0.63 0.22 25);
+  --destructive-foreground: oklch(0.985 0.005 250);
+  --border: oklch(1 0 0 / 0.08);
+  --input: oklch(1 0 0 / 0.12);
+  --ring: oklch(0.55 0.13 165);
+
+  --brand: oklch(0.48 0.1 165);          /* #076653 */
+  --brand-light: oklch(0.58 0.13 165);   /* #0F8A6B */
+  --cta: oklch(0.72 0.18 50);            /* #FF812B */
+  --cta-foreground: oklch(0.165 0.012 250);
+  --success: oklch(0.72 0.18 150);
+  --warning: oklch(0.78 0.16 75);
+  --error: oklch(0.63 0.22 25);
+}
+
+.light {
+  --background: oklch(0.97 0.008 80);   /* warm #F7F5F2 */
+  --foreground: oklch(0.22 0.02 250);
+  --surface: oklch(1 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.02 250);
+  --primary: oklch(0.22 0.02 250);
+  --primary-foreground: oklch(0.985 0.005 250);
+  --secondary: oklch(0.95 0.01 80);
+  --secondary-foreground: oklch(0.22 0.02 250);
+  --muted: oklch(0.95 0.01 80);
+  --muted-foreground: oklch(0.5 0.02 250);
+  --accent: oklch(0.95 0.01 80);
+  --accent-foreground: oklch(0.22 0.02 250);
+  --border: oklch(0.88 0.012 80);
+  --input: oklch(0.88 0.012 80);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--brand-light) 40%, transparent);
+    color: var(--foreground);
+  }
+}
+
+@utility glass {
+  background: color-mix(in oklab, white 6%, transparent);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid color-mix(in oklab, white 8%, transparent);
+}
+
+@utility glass-strong {
+  background: color-mix(in oklab, white 9%, transparent);
+  backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid color-mix(in oklab, white 10%, transparent);
+}
+
+@utility text-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  line-height: 1.02;
+  text-transform: uppercase;
+}
+
+@utility text-equinox {
+  font-family: var(--font-equinox);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+@utility text-script {
+  font-family: var(--font-script);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@utility grid-bg {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, white 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, white 4%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+@utility radial-fade {
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 80%);
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-10px) translateX(2px); }
+}
+@keyframes float-soft-2 {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(8px) translateX(-3px); }
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-float { animation: float-soft 7s ease-in-out infinite; }
+.animate-float-2 { animation: float-soft-2 9s ease-in-out infinite; }
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }

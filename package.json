@@ -5,15 +5,19 @@
   "workspaces": [
     "packages/*",
     "frontend",
-    "frontend-mobile"
+    "frontend-mobile",
+    "fingo",
+    "new-ui"
   ],
   "overrides": {
     "expo": "^54.0.35"
   },
   "scripts": {
     "web": "npm run dev --workspace=frontend",
+    "newui": "npm run dev --workspace=new-ui",
     "mobile": "npm run start --workspace=frontend-mobile",
     "backend": "cd backend && .venv/Scripts/python.exe manage.py runserver",
-    "dev": "npm run web"
+    "dev": "npm run web",
+    "fingo": "npm run dev --workspace=fingo"
   }
 }
